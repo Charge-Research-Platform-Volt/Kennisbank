@@ -18,6 +18,9 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
     private const int MaxSummaryTokens = 2000;
     private const int MessagesKeptUncompacted = 10;
 
+    // No client can ever join with this id, so SignalR status and reasoning events of an eval turn go nowhere
+    private const string EvalConnectionId = "chat-eval";
+
     private static string BuildSystemPrompt(string? projectId)
     {
         string scope = projectId != null ? "this project" : "the library";
@@ -181,7 +184,7 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
 
         var response = new StringBuilder();
         ChatTurnStats stats = new();
-        var stream = StreamAgenticResponse(connectionId, chatId, message, messageContent, attachmentNote, chatHistory, projectId, stats, cancellationToken);
+        var stream = StreamAgenticResponse(connectionId, chatId, message, messageContent, attachmentNote, chatHistory, projectId, stats, null, cancellationToken);
         await using var enumerator = stream.GetAsyncEnumerator(cancellationToken);
         bool hasNext = true;
 
@@ -234,7 +237,24 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
         logger.Information("Finished streaming AI response to {UserIdentifier}", userId);
     }
 
-    private async IAsyncEnumerable<string> StreamAgenticResponse(string connectionId, string chatId, string message, string messageContent, string? attachmentNote, List<object> chatHistory, string? projectId, ChatTurnStats stats, [EnumeratorCancellation] CancellationToken cancellationToken)
+    /// <summary>
+    /// Runs one chat turn for the chat eval: the same loop as a real answer, but nothing is saved and no client is listening.
+    /// </summary>
+    public async Task<(string Answer, ChatTurnStats Stats)> RunEvalTurnAsync(string question, List<object> chatHistory, string? modelOverride, CancellationToken cancellationToken)
+    {
+        ChatTurnStats stats = new();
+        StringBuilder answer = new();
+
+        // A chat id that doesn't exist, so attachment lookups find nothing and the context-token update is skipped
+        string chatId = Guid.NewGuid().ToString();
+
+        await foreach (string chunk in StreamAgenticResponse(EvalConnectionId, chatId, question, question, null, chatHistory, null, stats, modelOverride, cancellationToken))
+            answer.Append(chunk);
+
+        return (answer.ToString(), stats);
+    }
+
+    private async IAsyncEnumerable<string> StreamAgenticResponse(string connectionId, string chatId, string message, string messageContent, string? attachmentNote, List<object> chatHistory, string? projectId, ChatTurnStats stats, string? modelOverride, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         Stopwatch turnStopwatch = Stopwatch.StartNew();
         List<object> messages = [new { role = "system", content = BuildSystemPrompt(projectId) }];
@@ -263,7 +283,7 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
 
             for (int attempt = 0; attempt < 2; attempt++)
             {
-                await foreach(MistralStreamChunk chunk in mistralClient.StreamAsync(new MistralChatRequest { Messages = messages, Functions = ChatToolDefinitions.All, ReasoningEffort = MistralReasoningEffort.High }, cancellationToken))
+                await foreach(MistralStreamChunk chunk in mistralClient.StreamAsync(new MistralChatRequest { Messages = messages, Functions = ChatToolDefinitions.All, ReasoningEffort = MistralReasoningEffort.High }, modelOverride, cancellationToken))
                 {
                     if (chunk.Reasoning != null)
                         await hubContext.Clients.Client(connectionId).ChatReasoningChunk(chunk.Reasoning!);

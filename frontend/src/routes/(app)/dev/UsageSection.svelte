@@ -230,7 +230,6 @@
 						),
 						info: `${METRIC_INFO['chat.first_token']} Final round: ${METRIC_INFO['chat.final_round']}`
 					},
-
 					{
 						label: 'Mistral requests',
 						counts: mistral.counts,
