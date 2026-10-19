@@ -70,6 +70,7 @@ jobs:
       - run: pnpm check
       - run: pnpm lint
       - run: pnpm test
+      - run: pnpm build
 
   webscrape:
     name: Webscrape
