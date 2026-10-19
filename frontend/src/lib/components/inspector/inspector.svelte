@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ResourceItem, NavigationTarget } from '$lib/types/resource';
+	import type { ResourceItem, NavigationTarget, EmbeddingStatus } from '$lib/types/resource';
 	import {
 		ArrowLeft,
 		ArrowRight,
@@ -30,6 +30,7 @@
 	import { toast } from 'svelte-sonner';
 	import AddToProjectDialog from '../ui/add-to-project-dialog.svelte';
 	import { fetchInspectorItem } from '$lib/state/inspector.svelte';
+	import { onHubEvent, type HubConnectionContext } from '$lib/state/hub-connection.svelte';
 
 	let {
 		item = $bindable<ResourceItem | null>(null),
@@ -57,6 +58,14 @@
 	const action = $derived(getFileAction(item?.fileType ?? ''));
 
 	const closeInspector: () => void = getContext('closeInspector');
+
+	const hub = getContext<HubConnectionContext>('hubConnection');
+	
+	onHubEvent(hub, 'EmbeddingStatusChanged', (id, status) => {
+		const embeddingStatus = status as EmbeddingStatus;
+		if (item?.id === id) item.embeddingStatus = embeddingStatus;
+		for (const entry of history) if (entry.id === id) entry.embeddingStatus = embeddingStatus;
+	});
 
 	let nameInput = $state('');
 	let addToProjectOpen = $state(false);
