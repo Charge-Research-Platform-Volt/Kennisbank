@@ -180,7 +180,8 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
         bool failed = false;
 
         var response = new StringBuilder();
-        var stream = StreamAgenticResponse(connectionId, chatId, message, messageContent, attachmentNote, chatHistory, projectId, cancellationToken);
+        ChatTurnStats stats = new();
+        var stream = StreamAgenticResponse(connectionId, chatId, message, messageContent, attachmentNote, chatHistory, projectId, stats, cancellationToken);
         await using var enumerator = stream.GetAsyncEnumerator(cancellationToken);
         bool hasNext = true;
 
@@ -225,12 +226,17 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
 
         await SaveResponseAsync(response.ToString(), chatId, userId);
         usageMetrics.Record("chat.response", success: !failed, duration: stopwatch.Elapsed);
+        if (stats.Rounds > 0) usageMetrics.Record("chat.rounds", count: stats.Rounds);
+        if (stats.ToolCalls > 0) usageMetrics.Record("chat.tool_calls", count: stats.ToolCalls);
+        if (stats.FirstToken is TimeSpan firstToken) usageMetrics.Record("chat.first_token", duration: firstToken);
+        if (stats.FinalRound > TimeSpan.Zero) usageMetrics.Record("chat.final_round", duration: stats.FinalRound);
 
         logger.Information("Finished streaming AI response to {UserIdentifier}", userId);
     }
 
-    private async IAsyncEnumerable<string> StreamAgenticResponse(string connectionId, string chatId, string message, string messageContent, string? attachmentNote, List<object> chatHistory, string? projectId, [EnumeratorCancellation] CancellationToken cancellationToken)
+    private async IAsyncEnumerable<string> StreamAgenticResponse(string connectionId, string chatId, string message, string messageContent, string? attachmentNote, List<object> chatHistory, string? projectId, ChatTurnStats stats, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        Stopwatch turnStopwatch = Stopwatch.StartNew();
         List<object> messages = [new { role = "system", content = BuildSystemPrompt(projectId) }];
 
         List<MessageAttachments> allAttachments = await chatService.GetAttachmentsForChatAsync(Guid.Parse(chatId), activeOnly: true);
@@ -248,6 +254,8 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
 
         for (int i = 0; i <= MaxToolIterations; i++)
         {
+            stats.Rounds++;
+            Stopwatch roundStopwatch = Stopwatch.StartNew();
             await hubContext.Clients.Client(connectionId).ChatThinking();
 
             List<MistralToolCall>? toolCalls = null;
@@ -263,11 +271,16 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
                     if (chunk.Content != null)
                     {
                         anyContent = true;
+                        stats.FirstToken ??= turnStopwatch.Elapsed;
                         yield return chunk.Content;
                     }
 
                     if (i == 0 && chunk.PromptTokens is int promptTokens)
                         await chatService.UpdateLastContextTokensAsync(Guid.Parse(chatId), promptTokens);
+
+                    // Every round re-sends the whole conversation, so this adds up to what Mistral bills for the turn
+                    if (chunk.PromptTokens is int roundPromptTokens) stats.PromptTokens += roundPromptTokens;
+                    if (chunk.CompletionTokens is int roundCompletionTokens) stats.CompletionTokens += roundCompletionTokens;
 
                     if (chunk.ToolCalls != null)
                         toolCalls = chunk.ToolCalls;
@@ -278,8 +291,11 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
                 logger.Warning("Chat {ChatId} got an empty response on iteration {Iteration}, retrying once", chatId, i);
             }
 
-            if (toolCalls == null) yield break;
-            if (i == MaxToolIterations) yield break;
+            if (toolCalls == null || i == MaxToolIterations)
+            {
+                stats.FinalRound = roundStopwatch.Elapsed;
+                yield break;
+            }
 
             messages.Add(new
             {
@@ -300,12 +316,15 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
 
                 if (!executedToolCalls.Add($"{tc.Name}:{NormalizeToolArguments(tc.Arguments)}"))
                 {
-                    logger.Information("Chat {chatId} repeated identical {Tool} call, skipped", chatId, tc.Name);
+                    logger.Information("Chat {ChatId} repeated identical {Tool} call, skipped", chatId, tc.Name);
                     return Task.FromResult($"You already called {tc.Name} with these exact arguments this turn — the result is above and would be identical. Don't repeat it: use a substantially different query, a different tool, or answer with what you have.");
                 }
 
                 return toolExecutor.ExecuteAsync(tc, message, projectId, Guid.Parse(chatId), connectionId, cancellationToken);
             }));
+
+            stats.ToolCalls += toolCalls.Count;
+            stats.ToolResults.AddRange(results);
 
             for (int j = 0; j < toolCalls.Count; j++)
                 messages.Add(new { role = "tool", tool_call_id = toolCalls[j].Id, content = results[j] });

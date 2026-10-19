@@ -27,6 +27,14 @@ export const METRIC_INFO: Record<string, string> = {
 		'Completed file uploads, both files for new resources and files attached to a chat.',
 	'chat.response':
 		'Chatbot answers, timed from sending the message until the full answer is done, including tool calls. Failed means the user got an error message or an empty answer. Answers cancelled mid-stream aren’t counted.',
+	'chat.first_token':
+		'Time from sending a message until the first text of the answer appears, including all tool calls before it. This is the wait users actually feel. Reasoning in the thinking box doesn’t count as answer text.',
+	'chat.final_round':
+		'How long the last round of an answer took: the model thinking and writing the answer after all tool calls are done.',
+	'chat.rounds':
+		'Mistral calls per answer. Each round is one call that either asks for tools or writes the answer. Daily total; the average per answer is on the Chat responses tile.',
+	'chat.tool_calls':
+		'Tool calls per answer, all tools together. Daily total; the average per answer is on the Chat responses tile.',
 	'chat.tool.unknown':
 		'Tool calls with a name the app doesn’t know, which means the model made one up.',
 	'document.extraction.file':
