@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { api } from '$lib/api';
+	import { api } from '#lib/api.js';
 	import { onMount } from 'svelte';
-	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Textarea } from '$lib/components/ui/textarea';
-	import { confirm } from '$lib/state/confirm.svelte';
+	import Spinner from '#lib/components/ui/spinner/spinner.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Textarea } from '#lib/components/ui/textarea/index.js';
+	import { confirm } from '#lib/state/confirm.svelte.js';
 	import { RefreshCw, Trash, X } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 

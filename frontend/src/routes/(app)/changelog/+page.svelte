@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { api } from '$lib/api';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import { renderChangelog } from '$lib/changelog';
+	import { api } from '#lib/api.js';
+	import Button from '#lib/components/ui/button/button.svelte';
+	import { renderChangelog } from '#lib/changelog.js';
 
 	type ChangelogEntry = { id: number; title: string; body: string; createdAt: string };
 

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Input from '$lib/components/ui/input/input.svelte';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import { api } from '$lib/api';
+	import Input from '#lib/components/ui/input/input.svelte';
+	import Button from '#lib/components/ui/button/button.svelte';
+	import { api } from '#lib/api.js';
 	import { toast } from 'svelte-sonner';
 
 	let email = $state('');

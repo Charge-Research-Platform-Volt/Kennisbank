@@ -1,4 +1,4 @@
-import { api } from '$lib/api';
+import { api } from '#lib/api.js';
 
 function makeValidUrl(input: string): string {
 	if (input.startsWith('https://') || input.startsWith('http://')) return input;

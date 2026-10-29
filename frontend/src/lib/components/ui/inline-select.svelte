@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { ListItem } from '$lib/types/results';
-	import { debounce } from '$lib/utils/debounce';
+	import type { ListItem } from '#lib/types/results.js';
+	import { debounce } from '#lib/utils/debounce.js';
 
 	let {
 		// eslint-disable-next-line no-useless-assignment -- written to propagate to the parent via bind:, never read here

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import * as Tooltip from '$lib/components/ui/tooltip';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 	import type { LucideIcon } from '@lucide/svelte';
 	import { getContext, untrack, type Snippet } from 'svelte';
 

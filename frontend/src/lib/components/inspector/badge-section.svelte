@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { ListItem } from '$lib/types/results';
-	import type { RelationItem } from '$lib/types/resource';
+	import type { ListItem } from '#lib/types/results.js';
+	import type { RelationItem } from '#lib/types/resource.js';
 	import { getContext, untrack } from 'svelte';
 	import { X } from '@lucide/svelte';
-	import { debounce } from '$lib/utils/debounce';
+	import { debounce } from '#lib/utils/debounce.js';
 
 	let {
 		label,

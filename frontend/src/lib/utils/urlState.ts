@@ -1,4 +1,4 @@
-import { replaceState } from '$app/navigation';
+import { goto } from '$app/navigation';
 
 export function getParam(key: string, fallback = ''): string {
 	return new URLSearchParams(window.location.search).get(key) ?? fallback;
@@ -30,5 +30,5 @@ export function setParams(params: Record<string, string | number | null>): void 
 		}
 	}
 	const qs = current.toString();
-	replaceState(qs ? `?${qs}` : window.location.pathname, {});
+	goto(qs ? `?${qs}` : window.location.pathname, { shallow: true, replace: true });
 }

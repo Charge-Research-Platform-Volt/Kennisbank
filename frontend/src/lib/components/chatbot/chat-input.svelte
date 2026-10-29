@@ -10,9 +10,9 @@
 
 <script lang="ts">
 	import { ArrowUp, CircleX, Paperclip, Trash, X } from '@lucide/svelte';
-	import { api } from '$lib/api';
-	import { uploadFile } from '$lib/upload';
-	import * as Popover from '$lib/components/ui/popover';
+	import { api } from '#lib/api.js';
+	import { uploadFile } from '#lib/upload.js';
+	import * as Popover from '#lib/components/ui/popover/index.js';
 
 	let {
 		chatId = null,

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { confirmState } from '$lib/state/confirm.svelte';
-	import * as AlertDialog from '$lib/components/ui/alert-dialog';
+	import { confirmState } from '#lib/state/confirm.svelte.js';
+	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.js';
 	import Input from './input/input.svelte';
 </script>
 

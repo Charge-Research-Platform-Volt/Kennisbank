@@ -1,11 +1,11 @@
 <script lang="ts">
-	import Inspector from '$lib/components/inspector/inspector.svelte';
-	import ProjectChatSidebar from '$lib/components/chatbot/project-chat-sidebar.svelte';
-	import { createInspectorState } from '$lib/state/inspector.svelte';
+	import Inspector from '#lib/components/inspector/inspector.svelte';
+	import ProjectChatSidebar from '#lib/components/chatbot/project-chat-sidebar.svelte';
+	import { createInspectorState } from '#lib/state/inspector.svelte.js';
 	import { setContext } from 'svelte';
 	import { page } from '$app/state';
-	import { PaneGroup, Pane, Handle } from '$lib/components/ui/resizable';
-	import { sidebar } from '$lib/state/sidebar.svelte';
+	import { PaneGroup, Pane, Handle } from '#lib/components/ui/resizable/index.js';
+	import { sidebar } from '#lib/state/sidebar.svelte.js';
 
 	let { children } = $props();
 

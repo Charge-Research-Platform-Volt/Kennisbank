@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { api } from '$lib/api';
-	import { debounce } from '$lib/utils/debounce';
-	import type { ResourceItem } from '$lib/types/resource';
-	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
+	import { api } from '#lib/api.js';
+	import { debounce } from '#lib/utils/debounce.js';
+	import type { ResourceItem } from '#lib/types/resource.js';
+	import Spinner from '#lib/components/ui/spinner/spinner.svelte';
 	import {
 		Search,
 		ListFilter,
@@ -16,22 +16,22 @@
 		LoaderCircle,
 		CircleAlert
 	} from '@lucide/svelte';
-	import { userState } from '$lib/state/user.svelte';
-	import * as Table from '$lib/components/ui/table';
-	import { getFileAction, getFileIcon } from '$lib/utils/icons';
-	import { openFile } from '$lib/utils/openFile';
-	import * as Pagination from '$lib/components/ui/pagination';
+	import { userState } from '#lib/state/user.svelte.js';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import { getFileAction, getFileIcon } from '#lib/utils/icons.js';
+	import { openFile } from '#lib/utils/openFile.js';
+	import * as Pagination from '#lib/components/ui/pagination/index.js';
 	import type { PageItem } from 'bits-ui';
-	import { getParam, getParamInt, getParamArray, setParams } from '$lib/utils/urlState';
-	import * as ToggleGroup from '$lib/components/ui/toggle-group';
-	import Input from '$lib/components/ui/input/input.svelte';
-	import AsyncMultiSelect from '$lib/components/ui/async-multi-select.svelte';
-	import { formatDate } from '$lib/utils/date';
+	import { getParam, getParamInt, getParamArray, setParams } from '#lib/utils/urlState.js';
+	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
+	import Input from '#lib/components/ui/input/input.svelte';
+	import AsyncMultiSelect from '#lib/components/ui/async-multi-select.svelte';
+	import { formatDate } from '#lib/utils/date.js';
 	import { getContext, onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
-	import type { PagedResult, ListItem } from '$lib/types/results';
-	import { onHubEvent, type HubConnectionContext } from '$lib/state/hub-connection.svelte';
-	import * as Tooltip from '$lib/components/ui/tooltip';
+	import type { PagedResult, ListItem } from '#lib/types/results.js';
+	import { onHubEvent, type HubConnectionContext } from '#lib/state/hub-connection.svelte.js';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 
 	// Search
 	let searchInput = $state('');
@@ -267,7 +267,12 @@
 	registerRefresh(fetchItems);
 
 	onMount(() => syncFromUrl());
-	afterNavigate(() => syncFromUrl());
+
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		return syncFromUrl();
+	});
 </script>
 
 <div class="flex h-full flex-1 flex-col gap-4 overflow-hidden p-4">
@@ -527,7 +532,7 @@
 							{/if}
 						</div>
 					</Table.Head>
-					<Table.Head class="w-px whitespace-nowrap"></Table.Head>
+					<Table.Head class="w-px whitespace-nowrap" />
 				</tr>
 			</Table.Header>
 

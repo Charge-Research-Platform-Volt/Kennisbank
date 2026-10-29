@@ -15,14 +15,14 @@
 		Gauge,
 		BookBookmark
 	} from '@lucide/svelte';
-	import Avatar from '$lib/components/ui/avatar/avatar.svelte';
-	import { sidebar } from '$lib/state/sidebar.svelte';
+	import Avatar from '#lib/components/ui/avatar/avatar.svelte';
+	import { sidebar } from '#lib/state/sidebar.svelte.js';
 	import { page } from '$app/state';
 	import Button from '../ui/button/button.svelte';
 	import * as DropdownMenu from '../ui/dropdown-menu';
-	import { userState } from '$lib/state/user.svelte';
+	import { userState } from '#lib/state/user.svelte.js';
 	import { goto } from '$app/navigation';
-	import { api } from '$lib/api';
+	import { api } from '#lib/api.js';
 
 	let aside = $state<HTMLElement>();
 	let collapsed = $state(!sidebar.open);

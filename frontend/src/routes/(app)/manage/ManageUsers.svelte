@@ -1,17 +1,17 @@
 <script lang="ts">
-	import { api } from '$lib/api';
-	import Avatar from '$lib/components/ui/avatar/avatar.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
-	import * as Table from '$lib/components/ui/table';
-	import { confirm } from '$lib/state/confirm.svelte';
-	import type { CombinedEntry, CombinedListResponse, UserEntry } from '$lib/types/user';
-	import { debounce } from '$lib/utils/debounce';
+	import { api } from '#lib/api.js';
+	import Avatar from '#lib/components/ui/avatar/avatar.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import Spinner from '#lib/components/ui/spinner/spinner.svelte';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import { confirm } from '#lib/state/confirm.svelte.js';
+	import type { CombinedEntry, CombinedListResponse, UserEntry } from '#lib/types/user.js';
+	import { debounce } from '#lib/utils/debounce.js';
 	import { Search, Plus, RefreshCw, X, Pencil, Trash, Mail } from '@lucide/svelte';
-	import * as Pagination from '$lib/components/ui/pagination';
+	import * as Pagination from '#lib/components/ui/pagination/index.js';
 	import { toast } from 'svelte-sonner';
-	import * as Dialog from '$lib/components/ui/dialog';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
 
 	const debouncedSearch = debounce(onSearch);
 

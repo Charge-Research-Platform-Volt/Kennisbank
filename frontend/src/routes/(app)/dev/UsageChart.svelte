@@ -1,5 +1,5 @@
 <script lang="ts">
-	import * as Chart from '$lib/components/ui/chart';
+	import * as Chart from '#lib/components/ui/chart/index.js';
 	import { BarChart } from 'layerchart';
 	import InfoTip from './InfoTip.svelte';
 

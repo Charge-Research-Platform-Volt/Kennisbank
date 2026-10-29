@@ -1,5 +1,5 @@
 <script lang="ts">
-	import * as Tooltip from '$lib/components/ui/tooltip';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 	import { Info } from '@lucide/svelte';
 
 	let { text }: { text: string | null | undefined } = $props();

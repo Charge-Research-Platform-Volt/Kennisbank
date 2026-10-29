@@ -1,11 +1,11 @@
 <script lang="ts">
-	import Input from '$lib/components/ui/input/input.svelte';
-	import Button from '$lib/components/ui/button/button.svelte';
+	import Input from '#lib/components/ui/input/input.svelte';
+	import Button from '#lib/components/ui/button/button.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { api } from '$lib/api';
-	import PasswordRequirements from '$lib/components/ui/password-requirements.svelte';
-	import { isPasswordValid } from '$lib/utils/password';
+	import { api } from '#lib/api.js';
+	import PasswordRequirements from '#lib/components/ui/password-requirements.svelte';
+	import { isPasswordValid } from '#lib/utils/password.js';
 	import { toast } from 'svelte-sonner';
 
 	const email = page.url.searchParams.get('email') ?? '';

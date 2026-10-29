@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getContext, untrack } from 'svelte';
-	import type { DatePrecision } from '$lib/types/resource';
-	import { formatDate } from '$lib/utils/date';
+	import type { DatePrecision } from '#lib/types/resource.js';
+	import { formatDate } from '#lib/utils/date.js';
 
 	let {
 		date,

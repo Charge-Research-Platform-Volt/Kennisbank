@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import 'katex/dist/katex.min.css';
-	import { render, type ResolvedSource } from '$lib/chat/render';
+	import { render, type ResolvedSource } from '#lib/chat/render.js';
 
 	const libraryItemCache = new SvelteMap<string, ResolvedSource>();
 </script>
@@ -8,15 +8,15 @@
 <script lang="ts">
 	import { getContext, onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
-	import { api } from '$lib/api';
+	import { api } from '#lib/api.js';
 	import { toast } from 'svelte-sonner';
 	import type { ISubscription } from '@microsoft/signalr';
-	import { onHubEvent, type HubConnectionContext } from '$lib/state/hub-connection.svelte';
-	import ChatInput from '$lib/components/chatbot/chat-input.svelte';
+	import { onHubEvent, type HubConnectionContext } from '#lib/state/hub-connection.svelte.js';
+	import ChatInput from '#lib/components/chatbot/chat-input.svelte';
 	import { SvelteMap } from 'svelte/reactivity';
-	import ChatMessage from '$lib/components/chatbot/ChatMessage.svelte';
+	import ChatMessage from '#lib/components/chatbot/ChatMessage.svelte';
 	import { ArrowDown } from '@lucide/svelte';
-	import type { PendingAttachment } from '$lib/components/chatbot/chat-input.svelte';
+	import type { PendingAttachment } from '#lib/components/chatbot/chat-input.svelte';
 
 	let {
 		chatId,

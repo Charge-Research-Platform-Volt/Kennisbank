@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { api } from '$lib/api';
-	import { debounce } from '$lib/utils/debounce';
-	import { confirm } from '$lib/state/confirm.svelte';
+	import { api } from '#lib/api.js';
+	import { debounce } from '#lib/utils/debounce.js';
+	import { confirm } from '#lib/state/confirm.svelte.js';
 	import { toast } from 'svelte-sonner';
 	import {
 		Plus,
@@ -18,16 +18,16 @@
 		BuildingComplex,
 		Newspaper
 	} from '@lucide/svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
-	import * as Table from '$lib/components/ui/table';
-	import * as Pagination from '$lib/components/ui/pagination';
-	import * as Dialog from '$lib/components/ui/dialog';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import Spinner from '#lib/components/ui/spinner/spinner.svelte';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import * as Pagination from '#lib/components/ui/pagination/index.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { untrack } from 'svelte';
-	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
-	import type { ListItem, PagedResult } from '$lib/types/results';
+	import Checkbox from '#lib/components/ui/checkbox/checkbox.svelte';
+	import type { ListItem, PagedResult } from '#lib/types/results.js';
 
 	let {
 		type

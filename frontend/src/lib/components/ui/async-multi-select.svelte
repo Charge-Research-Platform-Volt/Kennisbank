@@ -1,7 +1,7 @@
 <script lang="ts">
-	import type { ListItem } from '$lib/types/results';
+	import type { ListItem } from '#lib/types/results.js';
 	import { Popover } from 'bits-ui';
-	import { debounce } from '$lib/utils/debounce';
+	import { debounce } from '#lib/utils/debounce.js';
 	import { Check, ChevronDown, Search } from '@lucide/svelte';
 
 	let {

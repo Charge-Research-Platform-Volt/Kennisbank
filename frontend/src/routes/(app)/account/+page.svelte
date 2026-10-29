@@ -1,17 +1,17 @@
 <script lang="ts">
-	import { userState } from '$lib/state/user.svelte';
-	import { api } from '$lib/api';
-	import Avatar from '$lib/components/ui/avatar/avatar.svelte';
-	import Input from '$lib/components/ui/input/input.svelte';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import Label from '$lib/components/ui/label/label.svelte';
+	import { userState } from '#lib/state/user.svelte.js';
+	import { api } from '#lib/api.js';
+	import Avatar from '#lib/components/ui/avatar/avatar.svelte';
+	import Input from '#lib/components/ui/input/input.svelte';
+	import Button from '#lib/components/ui/button/button.svelte';
+	import Label from '#lib/components/ui/label/label.svelte';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 	import { Pencil } from '@lucide/svelte';
-	import { confirm } from '$lib/state/confirm.svelte';
-	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
-	import PasswordRequirements from '$lib/components/ui/password-requirements.svelte';
-	import { isPasswordValid } from '$lib/utils/password';
+	import { confirm } from '#lib/state/confirm.svelte.js';
+	import Spinner from '#lib/components/ui/spinner/spinner.svelte';
+	import PasswordRequirements from '#lib/components/ui/password-requirements.svelte';
+	import { isPasswordValid } from '#lib/utils/password.js';
 
 	// Avatar
 	let avatarFile = $state<File | null>(null);

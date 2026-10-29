@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { api } from '$lib/api';
-	import type { ResourceItem, TrashItem } from '$lib/types/resource';
-	import { userState } from '$lib/state/user.svelte';
-	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
+	import { api } from '#lib/api.js';
+	import type { ResourceItem, TrashItem } from '#lib/types/resource.js';
+	import { userState } from '#lib/state/user.svelte.js';
+	import Spinner from '#lib/components/ui/spinner/spinner.svelte';
 	import { RotateCcw, ArrowLeft } from '@lucide/svelte';
-	import * as Table from '$lib/components/ui/table';
-	import { getFileIcon } from '$lib/utils/icons';
-	import { formatDate } from '$lib/utils/date';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import { getFileIcon } from '#lib/utils/icons.js';
+	import { formatDate } from '#lib/utils/date.js';
 	import { getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
-	import ChatHistory from '$lib/components/chatbot/chat-history.svelte';
-	import { chatRefresh } from '$lib/state/chat-refresh.svelte';
-	import { onHubEvent, type HubConnectionContext } from '$lib/state/hub-connection.svelte';
+	import ChatHistory from '#lib/components/chatbot/chat-history.svelte';
+	import { chatRefresh } from '#lib/state/chat-refresh.svelte.js';
+	import { onHubEvent, type HubConnectionContext } from '#lib/state/hub-connection.svelte.js';
 
 	let { children } = $props();
 	const hub = getContext<HubConnectionContext>('hubConnection');

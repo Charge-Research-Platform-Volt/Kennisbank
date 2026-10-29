@@ -1,7 +1,7 @@
 <script lang="ts">
-	import type { ListItem } from '$lib/types/results';
+	import type { ListItem } from '#lib/types/results.js';
 	import { X } from '@lucide/svelte';
-	import { debounce } from '$lib/utils/debounce';
+	import { debounce } from '#lib/utils/debounce.js';
 
 	let {
 		items = $bindable<ListItem[]>([]),

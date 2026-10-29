@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { X, User, BuildingComplex, Briefcase, Globe, Mail, Tag, Pencil } from '@lucide/svelte';
-	import RoleBadge from '$lib/components/role-badge.svelte';
+	import RoleBadge from '#lib/components/role-badge.svelte';
 	import type { EntityEntry } from './types.js';
 
 	let {

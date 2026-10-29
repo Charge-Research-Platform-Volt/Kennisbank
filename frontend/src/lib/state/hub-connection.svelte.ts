@@ -1,4 +1,4 @@
-import { api } from '$lib/api';
+import { api } from '#lib/api.js';
 import { HubConnectionBuilder, HttpTransportType, LogLevel } from '@microsoft/signalr';
 import type { HubConnection } from '@microsoft/signalr';
 import type { MistralStatus } from './mistral-status.svelte';

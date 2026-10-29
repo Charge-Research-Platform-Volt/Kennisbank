@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { api } from '$lib/api';
-	import ChatInput from '$lib/components/chatbot/chat-input.svelte';
-	import type { PendingAttachment } from '$lib/components/chatbot/chat-input.svelte';
-	import { chatRefresh } from '$lib/state/chat-refresh.svelte';
+	import { api } from '#lib/api.js';
+	import ChatInput from '#lib/components/chatbot/chat-input.svelte';
+	import type { PendingAttachment } from '#lib/components/chatbot/chat-input.svelte';
+	import { chatRefresh } from '#lib/state/chat-refresh.svelte.js';
 	import { toast } from 'svelte-sonner';
-	import type { HubConnectionContext } from '$lib/state/hub-connection.svelte';
+	import type { HubConnectionContext } from '#lib/state/hub-connection.svelte.js';
 
 	const hub = getContext<HubConnectionContext>('hubConnection');
 

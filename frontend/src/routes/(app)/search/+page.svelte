@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { api } from '$lib/api';
-	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
-	import type { ResourceItem } from '$lib/types/resource';
-	import { getFileIcon } from '$lib/utils/icons';
+	import { api } from '#lib/api.js';
+	import Spinner from '#lib/components/ui/spinner/spinner.svelte';
+	import type { ResourceItem } from '#lib/types/resource.js';
+	import { getFileIcon } from '#lib/utils/icons.js';
 	import { Search, ArrowRight, X } from '@lucide/svelte';
 	import { onMount, getContext } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
-	import { formatDate } from '$lib/utils/date';
-	import { getParam, setParams } from '$lib/utils/urlState';
-	import { debounce } from '$lib/utils/debounce';
+	import { formatDate } from '#lib/utils/date.js';
+	import { getParam, setParams } from '#lib/utils/urlState.js';
+	import { debounce } from '#lib/utils/debounce.js';
 	import { toast } from 'svelte-sonner';
 
 	const openInspector: (item: ResourceItem) => void = getContext('openInspector');

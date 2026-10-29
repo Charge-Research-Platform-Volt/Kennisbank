@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
-	import { onHubEvent, type HubConnectionContext } from '$lib/state/hub-connection.svelte';
+	import { onHubEvent, type HubConnectionContext } from '#lib/state/hub-connection.svelte.js';
 	import ChatView from './chat-view.svelte';
 	import ChatInput from './chat-input.svelte';
-	import { api } from '$lib/api';
-	import * as Popover from '$lib/components/ui/popover';
-	import * as Tooltip from '$lib/components/ui/tooltip';
+	import { api } from '#lib/api.js';
+	import * as Popover from '#lib/components/ui/popover/index.js';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 	import { SquarePen, RotateCcwClock, X, Info } from '@lucide/svelte';
 
 	type ChatSummary = { id: string; title: string; createdOn: string };

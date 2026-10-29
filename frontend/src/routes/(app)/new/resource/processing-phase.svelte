@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { api } from '$lib/api';
-	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import type { ExtractedMetadata } from '$lib/types/resource';
+	import { api } from '#lib/api.js';
+	import Spinner from '#lib/components/ui/spinner/spinner.svelte';
+	import Button from '#lib/components/ui/button/button.svelte';
+	import type { ExtractedMetadata } from '#lib/types/resource.js';
 
 	let {
 		jobId,
