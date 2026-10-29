@@ -8,6 +8,12 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace KnowledgeBank.IntegrationTests.Infrastructure;
 
+/// <summary>Ids of the document types the AddProjectDocuments migration seeds.</summary>
+public static class ProjectDocumentTypes
+{
+    public static readonly Guid Minutes = Guid.Parse("9b3eeb99-8bb2-4d92-9b54-aa27f6e20657");
+}
+
 /// <summary>Small helpers for setting up test data through the real API, the way the frontend does.</summary>
 public static class Api
 {
@@ -39,6 +45,47 @@ public static class Api
         await EnsureAsync(response, HttpStatusCode.Created);
         return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("projectId").GetGuid();
     }
+
+    /// <summary>Runs the chunked upload the frontend uses (init, one part, finalize) and returns the object name.</summary>
+    public static async Task<string> UploadFileAsync(this HttpClient client, string fileName, byte[] content, string purpose = "Library")
+    {
+        HttpResponseMessage init = await client.PostAsJsonAsync("/files/upload/init", new { fileName, fileSize = content.Length, purpose });
+        await EnsureAsync(init, HttpStatusCode.OK);
+        JsonElement started = await init.Content.ReadFromJsonAsync<JsonElement>();
+        string objectName = started.GetProperty("objectName").GetString()!;
+        string uploadId = started.GetProperty("uploadId").GetString()!;
+
+        HttpResponseMessage part = await client.PostAsync($"/files/upload/part/{objectName}/{uploadId}/1?purpose={purpose}", new ByteArrayContent(content));
+        await EnsureAsync(part, HttpStatusCode.OK);
+        string eTag = (await part.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("eTag").GetString()!;
+
+        HttpResponseMessage finalize = await client.PostAsJsonAsync("/files/upload/finalize", new { objectName, uploadId, purpose, partETags = new Dictionary<int, string> { [1] = eTag } });
+        await EnsureAsync(finalize, HttpStatusCode.NoContent);
+
+        return objectName;
+    }
+
+    public static Task<string> UploadProjectDocumentFileAsync(this HttpClient client, string fileName = "document.pdf", byte[]? content = null)
+        => client.UploadFileAsync(fileName, content ?? "%PDF-1.4 test"u8.ToArray(), "ProjectDocument");
+
+    /// <summary>Uploads a file and creates a project document from it, the way the upload dialog does.</summary>
+    public static async Task<Guid> CreateProjectDocumentAsync(this HttpClient client, Guid projectId, string visibility = "ProjectMembers",
+        string generalAccessType = "Editor", object[]? grants = null, string? title = null, string fileName = "document.pdf", byte[]? content = null, Guid? typeId = null)
+    {
+        string objectName = await client.UploadProjectDocumentFileAsync(fileName, content);
+        return await ReadGuidAsync(await client.PostAsJsonAsync($"/projects/{projectId}/documents", new
+        {
+            objectName,
+            fileName,
+            title = title ?? Unique("Document"),
+            typeId = typeId ?? ProjectDocumentTypes.Minutes,
+            visibility,
+            generalAccessType,
+            grants = grants ?? []
+        }));
+    }
+
+    public static object Grant(Guid userId, string accessType) => new { userId, accessType };
 
     public static async Task<LibraryResult> BrowseLibraryAsync(this HttpClient client, object request)
     {

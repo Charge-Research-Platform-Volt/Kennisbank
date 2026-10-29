@@ -7,11 +7,21 @@ namespace KnowledgeBank.IntegrationTests.Infrastructure;
 public sealed class InMemoryStorageService : IStorageService
 {
     private readonly ConcurrentDictionary<string, byte[]> objects = new();
+    private readonly ConcurrentDictionary<string, DateTime> lastModified = new();
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<int, byte[]>> uploads = new();
 
     private static string Key(string bucket, string name) => $"{bucket}/{name}";
 
     public bool Exists(string bucketName, string objectName) => objects.ContainsKey(Key(bucketName, objectName));
+
+    /// <summary>Backdates an object, so StorageCleanupService treats it as past its grace period.</summary>
+    public void SetLastModified(string bucketName, string objectName, DateTime modifiedUtc) => lastModified[Key(bucketName, objectName)] = modifiedUtc;
+
+    private void Store(string bucketName, string objectName, byte[] data)
+    {
+        objects[Key(bucketName, objectName)] = data;
+        lastModified[Key(bucketName, objectName)] = DateTime.UtcNow;
+    }
 
     public Task CreateBucketAsync(string bucketName) => Task.CompletedTask;
 
@@ -21,7 +31,7 @@ public sealed class InMemoryStorageService : IStorageService
     {
         using MemoryStream buffer = new();
         await content.CopyToAsync(buffer);
-        objects[Key(bucketName, objectName)] = buffer.ToArray();
+        Store(bucketName, objectName, buffer.ToArray());
     }
 
     public Task<ObjectDownloadResponse> DownloadObjectAsync(string bucketName, string objectName)
@@ -35,9 +45,9 @@ public sealed class InMemoryStorageService : IStorageService
     public Task DeleteObjectAsync(string bucketName, string objectName)
     {
         objects.TryRemove(Key(bucketName, objectName), out _);
+        lastModified.TryRemove(Key(bucketName, objectName), out _);
         return Task.CompletedTask;
     }
-
 
     public Task<IDictionary<string, string>> GetObjectMetadataAsync(string bucketName, string objectName)
         => Task.FromResult<IDictionary<string, string>>(new Dictionary<string, string>());
@@ -45,7 +55,7 @@ public sealed class InMemoryStorageService : IStorageService
     public Task<StorageObjectInfo[]> ListObjectsAsync(string bucketName, string? prefix = null)
         => Task.FromResult(objects.Keys
             .Where(k => k.StartsWith($"{bucketName}/{prefix}"))
-            .Select(k => new StorageObjectInfo(k[(bucketName.Length + 1)..], DateTime.UtcNow))
+            .Select(k => new StorageObjectInfo(k[(bucketName.Length + 1)..], lastModified.GetValueOrDefault(k, DateTime.UtcNow)))
             .ToArray());
 
     public Task<string> InitiateMultipartUploadAsync(string bucketName, string objectName, IDictionary<string, string>? metadata = null, string? contentType = null)
@@ -66,7 +76,7 @@ public sealed class InMemoryStorageService : IStorageService
     public Task CompleteMultipartUploadAsync(string bucketName, string objectName, string uploadId, IDictionary<int, string> partETags)
     {
         if (uploads.TryRemove(uploadId, out var stored))
-            objects[Key(bucketName, objectName)] = [.. stored.OrderBy(p => p.Key).SelectMany(p => p.Value)];
+            Store(bucketName, objectName, [.. stored.OrderBy(p => p.Key).SelectMany(p => p.Value)]);
         return Task.CompletedTask;
     }
 

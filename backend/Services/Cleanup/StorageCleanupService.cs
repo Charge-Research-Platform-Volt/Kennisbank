@@ -50,7 +50,8 @@ public class StorageCleanupService(IServiceProvider serviceProvider, Environment
         logger.Information("StorageCleanupService stopped");
     }
 
-    private async Task CleanupOrphanedObjects(
+    // Internal so integration tests can run one pass and wait for it, the loop above never signals completion
+    internal async Task CleanupOrphanedObjects(
         IStorageService storageService,
         IDbContextFactory<DatabaseContext> dbFactory,
         CancellationToken stoppingToken)

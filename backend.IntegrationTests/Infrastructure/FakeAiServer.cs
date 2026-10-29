@@ -12,6 +12,7 @@ namespace KnowledgeBank.IntegrationTests.Infrastructure;
 /// Local stand-in for the OpenAI-compatible embeddings API and the Mistral API, so tests never
 /// reach a real (paid) service. Embeddings are deterministic: the same text always gets the same vector.
 /// Mistral has no routes on purpose; any call to it fails with a 404.
+/// Also answers the one Headscale lookup that deleting a user makes.
 /// </summary>
 public sealed class FakeAiServer : IDisposable
 {
@@ -67,6 +68,11 @@ public sealed class FakeAiServer : IDisposable
                     BodyData = Body(json)
                 };
             }));
+
+        // Headscale: test users never have a VPN account, so deleting a user finds nothing to remove
+        server
+            .Given(Request.Create().WithPath("/headscale/api/v1/user").UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(200).WithHeader("Content-Type", "application/json").WithBody("""{"users":[]}"""));
     }
 
     /// <summary>
