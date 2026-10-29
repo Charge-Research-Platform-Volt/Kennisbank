@@ -10,6 +10,7 @@ using KnowledgeBank.Utils;
 using KnowledgeBank.Data;
 using Microsoft.AspNetCore.StaticFiles;
 using System.Text;
+using Microsoft.Net.Http.Headers;
 
 namespace KnowledgeBank.Controllers;
 
@@ -134,12 +135,13 @@ public class FilesController(IStorageService storageService, ResourceService res
                         contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ||
                         contentType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase);
 
-        string disposition = canInline && response.ContentLength <= maxInlineSize
-            ? $"inline; filename=\"{fileName}\""
-            : $"attachment; filename=\"{fileName}\"";
+        // SetHttpFileName escapes quotes and adds a UTF-8 filename*, raw non-ASCII in a header makes Kestrel throw
+        ContentDispositionHeaderValue disposition = new(canInline && response.ContentLength <= maxInlineSize ? "inline" : "attachment");
+        disposition.SetHttpFileName(fileName);
 
         Response.ContentType = contentType;
-        Response.Headers.Append("Content-Disposition", disposition);
+        Response.Headers.ContentDisposition = disposition.ToString();
+
         await stream.CopyToAsync(Response.Body);
 
         return new EmptyResult();

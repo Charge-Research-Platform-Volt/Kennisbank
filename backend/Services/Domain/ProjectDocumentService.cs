@@ -134,6 +134,12 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
         return objects.Any(o => o.Key == key);
     }
 
+    public async Task<bool> AllUsersActiveAsync(IEnumerable<Guid> userIds)
+    {
+        string[] ids = [.. userIds.Select(id => id.ToString()).Distinct()];
+        return await db.Users.CountAsync(u => ids.Contains(u.Id) && !u.IsDeleted) == ids.Length;
+    }
+
     #endregion
 
     #region Commands
