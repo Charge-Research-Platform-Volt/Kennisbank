@@ -33,6 +33,9 @@ public class FilesController(IStorageService storageService, ResourceService res
         if (!Filetype.Supported(extension))
             return Problem($"File type '{extension}' not supported.", statusCode: 400);
 
+        if (dto.Purpose == UploadPurpose.ProjectDocument && !ProjectDocumentService.SupportedExtensions.Contains(Filetype.TrimExtension(extension).ToLowerInvariant()))
+            return Problem("Project documents must be PDF or Word (.docx).", statusCode: 400);
+
         string objectName = Guid.NewGuid().ToString();
 
         var metadata = new Dictionary<string, string>
@@ -41,7 +44,7 @@ public class FilesController(IStorageService storageService, ResourceService res
             { "originalFileName", Uri.EscapeDataString(Path.GetFileNameWithoutExtension(dto.FileName)) }
         };
 
-        string uploadId = await storageService.InitiateMultipartUploadAsync(bucketName, objectName, metadata);
+        string uploadId = await storageService.InitiateMultipartUploadAsync(bucketName, ObjectKey(objectName, dto.Purpose)!, metadata);
 
         return Ok(new { objectName, uploadId });
     }
@@ -50,16 +53,19 @@ public class FilesController(IStorageService storageService, ResourceService res
     [SwaggerOperation(Summary = "Upload a chunk of a multipart upload")]
     [SwaggerResponse(200, "ETag of uploaded part")]
     [SwaggerResponse(400, "Bad request")]
-    public async Task<IActionResult> UploadChunk(string objectName, string uploadId, int partNumber)
+    public async Task<IActionResult> UploadChunk(string objectName, string uploadId, int partNumber, [FromQuery] UploadPurpose purpose = UploadPurpose.Library)
     {
         if (partNumber < 1)
             return Problem("Part number must be >= 1.", statusCode: 400);
+
+        string? key = ObjectKey(objectName, purpose);
+        if (key == null) return Problem("Invalid object name.", statusCode: 400);
 
         using MemoryStream memoryStream = new();
         await Request.Body.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
 
-        string eTag = await storageService.UploadPartAsync(bucketName, objectName, uploadId, partNumber, memoryStream);
+        string eTag = await storageService.UploadPartAsync(bucketName, key, uploadId, partNumber, memoryStream);
 
         return Ok(new { eTag });
     }
@@ -73,7 +79,10 @@ public class FilesController(IStorageService storageService, ResourceService res
         if (dto.PartETags == null || dto.PartETags.Count == 0)
             return Problem("No ETags provided.", statusCode: 400);
 
-        await storageService.CompleteMultipartUploadAsync(bucketName, dto.ObjectName, dto.UploadId, dto.PartETags);
+        string? key = ObjectKey(dto.ObjectName, dto.Purpose);
+        if (key == null) return Problem("Invalid object name.", statusCode: 400);
+
+        await storageService.CompleteMultipartUploadAsync(bucketName, key, dto.UploadId, dto.PartETags);
         usageMetrics.Record("files.upload");
 
         return NoContent();
@@ -82,9 +91,12 @@ public class FilesController(IStorageService storageService, ResourceService res
     [HttpDelete("upload/cancel/{objectName}/{uploadId}")]
     [SwaggerOperation(Summary = "Cancel a multipart upload")]
     [SwaggerResponse(204, "Upload cancelled")]
-    public async Task<IActionResult> UploadCancel(string objectName, string uploadId)
+    public async Task<IActionResult> UploadCancel(string objectName, string uploadId, [FromQuery] UploadPurpose purpose = UploadPurpose.Library)
     {
-        await storageService.AbortMultipartUploadAsync(bucketName, objectName, uploadId);
+        string? key = ObjectKey(objectName, purpose);
+        if (key == null) return Problem("Invalid object name.", statusCode: 400);
+
+        await storageService.AbortMultipartUploadAsync(bucketName, key, uploadId);
         return NoContent();
     }
 
@@ -159,5 +171,12 @@ public class FilesController(IStorageService storageService, ResourceService res
             return "unnamed";
 
         return result.Length > 255 ? result[..255] : result;
+    }
+
+    // Project document uploads land under the project-docs prefix right away, so /files/{id} never serves them
+    private static string? ObjectKey(string objectName, UploadPurpose purpose)
+    {
+        if (!Guid.TryParse(objectName, out Guid id)) return null;
+        return purpose == UploadPurpose.ProjectDocument ? ProjectDocumentService.StorageKey(id) : id.ToString();
     }
 }

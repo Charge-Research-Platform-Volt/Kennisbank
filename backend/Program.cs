@@ -24,6 +24,7 @@ using Npgsql;
 using KnowledgeBank.Services.Domain;
 using Meilisearch;
 using System.Security.Claims;
+using KnowledgeBank.Models.ProjectDocuments;
 
 namespace KnowledgeBank
 {
@@ -169,6 +170,8 @@ namespace KnowledgeBank
             builder.Services.AddScoped<ResourceService>();
             builder.Services.AddScoped<LibraryService>();
             builder.Services.AddScoped<ProjectService>();
+            builder.Services.AddScoped<ProjectDocumentService>();
+            builder.Services.AddScoped<ProjectDocumentTypeService>();
             builder.Services.AddScoped<ChatService>();
             builder.Services.AddScoped<MessageAttachmentService>();
             builder.Services.AddScoped<ChatOrchestrationService>();

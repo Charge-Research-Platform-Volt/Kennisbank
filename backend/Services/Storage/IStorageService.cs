@@ -41,9 +41,6 @@ public interface IStorageService
     /// <summary>Deletes an object from storage.</summary>
     Task DeleteObjectAsync(string bucketName, string objectName);
 
-    /// <summary>Copies an object within a bucket, keeping its metadata</summary>
-    Task CopyObjectAsync(string bucketName, string sourceObjectName, string destinationObjectName);
-
     /// <summary>Gets object metadata without downloading content.</summary>
     Task<IDictionary<string, string>> GetObjectMetadataAsync(string bucketName, string objectName);
 

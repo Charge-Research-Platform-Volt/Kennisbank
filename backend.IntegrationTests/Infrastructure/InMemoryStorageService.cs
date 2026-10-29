@@ -38,15 +38,6 @@ public sealed class InMemoryStorageService : IStorageService
         return Task.CompletedTask;
     }
 
-    public Task CopyObjectAsync(string bucketName, string sourceObjectName, string destinationObjectName)
-    {
-        if (!objects.TryGetValue(Key(bucketName, sourceObjectName), out byte[]? data))
-            throw new FileNotFoundException($"Object {sourceObjectName} not found");
-
-        objects[Key(bucketName, destinationObjectName)] = data;
-        return Task.CompletedTask;
-    }
-
 
     public Task<IDictionary<string, string>> GetObjectMetadataAsync(string bucketName, string objectName)
         => Task.FromResult<IDictionary<string, string>>(new Dictionary<string, string>());

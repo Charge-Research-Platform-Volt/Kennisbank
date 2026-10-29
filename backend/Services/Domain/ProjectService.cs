@@ -209,6 +209,12 @@ public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxon
         return ancestors;
     }
 
+    public async Task<Guid> GetRootIdAsync(Guid id)
+    {
+        List<ProjectAncestor> ancestors = await GetAncestorsAsync(id);
+        return ancestors.Count > 0 ? ancestors[0].Id : id;
+    }
+
     public async Task<List<ProjectFolderDto>> GetAllFoldersAsync(Guid rootId)
     {
         var result = new List<ProjectFolderDto>();
