@@ -1,18 +1,18 @@
 <script lang="ts">
-	import type { User } from '$lib/state/user.svelte';
-	import { userState } from '$lib/state/user.svelte';
-	import { api } from '$lib/api';
-	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
-	import Sidebar from '$lib/components/sidebar/sidebar.svelte';
-	import * as Dialog from '$lib/components/ui/dialog';
-	import * as Tooltip from '$lib/components/ui/tooltip';
-	import Button from '$lib/components/ui/button/button.svelte';
+	import type { User } from '#lib/state/user.svelte.js';
+	import { userState } from '#lib/state/user.svelte.js';
+	import { api } from '#lib/api.js';
+	import Spinner from '#lib/components/ui/spinner/spinner.svelte';
+	import Sidebar from '#lib/components/sidebar/sidebar.svelte';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+	import Button from '#lib/components/ui/button/button.svelte';
 	import { Sparkles, TriangleAlert, X } from '@lucide/svelte';
-	import { createHubConnection, onHubEvent } from '$lib/state/hub-connection.svelte';
-	import { renderChangelog } from '$lib/changelog';
+	import { createHubConnection, onHubEvent } from '#lib/state/hub-connection.svelte.js';
+	import { renderChangelog } from '#lib/changelog.js';
 	import { setContext, onMount } from 'svelte';
-	import { mistralStatusState } from '$lib/state/mistral-status.svelte';
-	import type { MistralStatus } from '$lib/state/mistral-status.svelte';
+	import { mistralStatusState } from '#lib/state/mistral-status.svelte.js';
+	import type { MistralStatus } from '#lib/state/mistral-status.svelte.js';
 
 	type ChangelogEntry = { title: string; body: string; createdAt: string };
 

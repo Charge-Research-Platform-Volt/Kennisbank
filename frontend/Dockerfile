@@ -1,7 +1,7 @@
-FROM node:24-alpine AS build
-RUN corepack enable pnpm
+FROM node:26-alpine AS build
+RUN npm install -g pnpm@12
 WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm run prepare

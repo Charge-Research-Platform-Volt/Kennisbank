@@ -1,13 +1,13 @@
 <script lang="ts">
-	import Input from '$lib/components/ui/input/input.svelte';
-	import Button from '$lib/components/ui/button/button.svelte';
+	import Input from '#lib/components/ui/input/input.svelte';
+	import Button from '#lib/components/ui/button/button.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { api } from '$lib/api';
+	import { api } from '#lib/api.js';
 	import { Pencil } from '@lucide/svelte';
-	import Avatar from '$lib/components/ui/avatar/avatar.svelte';
-	import PasswordRequirements from '$lib/components/ui/password-requirements.svelte';
-	import { isPasswordValid } from '$lib/utils/password';
+	import Avatar from '#lib/components/ui/avatar/avatar.svelte';
+	import PasswordRequirements from '#lib/components/ui/password-requirements.svelte';
+	import { isPasswordValid } from '#lib/utils/password.js';
 	import { toast } from 'svelte-sonner';
 
 	const token = page.url.searchParams.get('token');

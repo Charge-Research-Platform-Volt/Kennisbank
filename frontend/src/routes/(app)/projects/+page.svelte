@@ -1,26 +1,26 @@
 <script lang="ts">
-	import * as Pagination from '$lib/components/ui/pagination';
-	import { debounce } from '$lib/utils/debounce';
+	import * as Pagination from '#lib/components/ui/pagination/index.js';
+	import { debounce } from '#lib/utils/debounce.js';
 	import type { PageItem } from 'bits-ui';
-	import { getParam, getParamInt, setParams } from '$lib/utils/urlState';
+	import { getParam, getParamInt, setParams } from '#lib/utils/urlState.js';
 	import { onMount } from 'svelte';
 	import { afterNavigate, goto } from '$app/navigation';
-	import type { Project, ProjectListResponse } from '$lib/types/project';
-	import { api } from '$lib/api';
+	import type { Project, ProjectListResponse } from '#lib/types/project.js';
+	import { api } from '#lib/api.js';
 	import { Search, X, BookBookmark, Plus } from '@lucide/svelte';
-	import { userState } from '$lib/state/user.svelte';
-	import * as Table from '$lib/components/ui/table';
-	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
-	import { formatDate } from '$lib/utils/date';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import * as Dialog from '$lib/components/ui/dialog';
-	import AsyncMultiSelect from '$lib/components/ui/async-multi-select.svelte';
-	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
-	import Input from '$lib/components/ui/input/input.svelte';
-	import Label from '$lib/components/ui/label/label.svelte';
-	import Avatar from '$lib/components/ui/avatar/avatar.svelte';
+	import { userState } from '#lib/state/user.svelte.js';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import Spinner from '#lib/components/ui/spinner/spinner.svelte';
+	import { formatDate } from '#lib/utils/date.js';
+	import Button from '#lib/components/ui/button/button.svelte';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import AsyncMultiSelect from '#lib/components/ui/async-multi-select.svelte';
+	import Textarea from '#lib/components/ui/textarea/textarea.svelte';
+	import Input from '#lib/components/ui/input/input.svelte';
+	import Label from '#lib/components/ui/label/label.svelte';
+	import Avatar from '#lib/components/ui/avatar/avatar.svelte';
 	import { toast } from 'svelte-sonner';
-	import type { ListItem, PagedResult } from '$lib/types/results';
+	import type { ListItem, PagedResult } from '#lib/types/results.js';
 
 	// Search
 	let searchInput = $state('');
@@ -125,7 +125,12 @@
 	}
 
 	onMount(() => syncFromUrl());
-	afterNavigate(() => syncFromUrl());
+
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		return syncFromUrl();
+	});
 </script>
 
 <div class="flex h-full flex-1 flex-col gap-4 overflow-hidden p-4">
@@ -150,10 +155,9 @@
 			{/if}
 		</div>
 
-		<Button class="flex cursor-pointer items-center" onclick={() => (dialogOpen = true)}>
-			<Plus size={14} class="shrink-0" />
-			Create Project
-		</Button>
+		<Button class="flex cursor-pointer items-center" onclick={() => (dialogOpen = true)}
+			><Plus size={14} class="shrink-0" />Create Project</Button
+		>
 	</div>
 
 	<!-- List -->
@@ -281,6 +285,7 @@
 			<Button class="cursor-pointer" variant="outline" onclick={() => (dialogOpen = false)}
 				>Cancel</Button
 			>
+
 			<Button
 				class="cursor-pointer"
 				onclick={createProject}

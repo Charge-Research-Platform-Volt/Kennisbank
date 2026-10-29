@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ResourceItem, NavigationTarget, EmbeddingStatus } from '$lib/types/resource';
+	import type { ResourceItem, NavigationTarget, EmbeddingStatus } from '#lib/types/resource.js';
 	import {
 		ArrowLeft,
 		ArrowRight,
@@ -14,23 +14,23 @@
 		LoaderCircle,
 		CircleAlert
 	} from '@lucide/svelte';
-	import { getFileAction, getFileIcon } from '$lib/utils/icons';
+	import { getFileAction, getFileIcon } from '#lib/utils/icons.js';
 	import { untrack, setContext, getContext } from 'svelte';
-	import { formatDate } from '$lib/utils/date';
+	import { formatDate } from '#lib/utils/date.js';
 	import ResourceInspector from './resource-inspector.svelte';
 	import PersonInspector from './person-inspector.svelte';
 	import OrganistationInspector from './organistation-inspector.svelte';
 	import TooltipProvider from '../ui/tooltip/tooltip-provider.svelte';
-	import { api } from '$lib/api';
-	import { openFile } from '$lib/utils/openFile';
-	import { setParams } from '$lib/utils/urlState';
+	import { api } from '#lib/api.js';
+	import { openFile } from '#lib/utils/openFile.js';
+	import { setParams } from '#lib/utils/urlState.js';
 	import EditableDate from './editable-date.svelte';
-	import { userState } from '$lib/state/user.svelte';
+	import { userState } from '#lib/state/user.svelte.js';
 	import * as DropdownMenu from '../ui/dropdown-menu';
 	import { toast } from 'svelte-sonner';
 	import AddToProjectDialog from '../ui/add-to-project-dialog.svelte';
-	import { fetchInspectorItem } from '$lib/state/inspector.svelte';
-	import { onHubEvent, type HubConnectionContext } from '$lib/state/hub-connection.svelte';
+	import { fetchInspectorItem } from '#lib/state/inspector.svelte.js';
+	import { onHubEvent, type HubConnectionContext } from '#lib/state/hub-connection.svelte.js';
 
 	let {
 		item = $bindable<ResourceItem | null>(null),

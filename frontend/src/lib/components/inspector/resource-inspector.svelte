@@ -1,17 +1,17 @@
 <script lang="ts">
-	import type { ResourceItem, ResourceDetail } from '$lib/types/resource';
-	import { api } from '$lib/api';
+	import type { ResourceItem, ResourceDetail } from '#lib/types/resource.js';
+	import { api } from '#lib/api.js';
 	import Spinner from '../ui/spinner/spinner.svelte';
 	import { Layers, Languages, Scale, FingerprintPattern, Link, Newspaper } from '@lucide/svelte';
-	import { formatLanguage } from '$lib/utils/locale';
-	import { LanguageCodes } from '$lib/lists/languageCodes';
+	import { formatLanguage } from '#lib/utils/locale.js';
+	import { LanguageCodes } from '#lib/lists/languageCodes.js';
 	import BadgeSection from './badge-section.svelte';
 	import RelationSection from './relation-section.svelte';
 	import TextSection from './text-section.svelte';
 	import CharacteristicRow from './characteristic-row.svelte';
-	import AsyncSelect from '$lib/components/ui/async-select.svelte';
+	import AsyncSelect from '#lib/components/ui/async-select.svelte';
 	import { getContext } from 'svelte';
-	import type { PagedResult, ListItem } from '$lib/types/results';
+	import type { PagedResult, ListItem } from '#lib/types/results.js';
 
 	const getEditMode = getContext<() => boolean>('getEditMode');
 	let editMode = $derived(getEditMode());

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Inspector from './inspector.svelte';
-	import { createInspectorState } from '$lib/state/inspector.svelte';
-	import { PaneGroup, Pane, Handle } from '$lib/components/ui/resizable';
+	import { createInspectorState } from '#lib/state/inspector.svelte.js';
+	import { PaneGroup, Pane, Handle } from '#lib/components/ui/resizable/index.js';
 
 	let { children } = $props();
 

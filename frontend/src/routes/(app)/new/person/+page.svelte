@@ -1,18 +1,18 @@
 <script lang="ts">
-	import type { ListItem, PagedResult } from '$lib/types/results';
+	import type { ListItem, PagedResult } from '#lib/types/results.js';
 	import { goto } from '$app/navigation';
-	import { debounce } from '$lib/utils/debounce';
-	import { api } from '$lib/api';
-	import Input from '$lib/components/ui/input/input.svelte';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
-	import Label from '$lib/components/ui/label/label.svelte';
+	import { debounce } from '#lib/utils/debounce.js';
+	import { api } from '#lib/api.js';
+	import Input from '#lib/components/ui/input/input.svelte';
+	import Button from '#lib/components/ui/button/button.svelte';
+	import Textarea from '#lib/components/ui/textarea/textarea.svelte';
+	import Label from '#lib/components/ui/label/label.svelte';
 	import { toast } from 'svelte-sonner';
-	import type { ProjectListResponse } from '$lib/types/project';
+	import type { ProjectListResponse } from '#lib/types/project.js';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import AsyncMultiSelect from '$lib/components/ui/async-multi-select.svelte';
-	import BadgeInput from '$lib/components/ui/badge-input.svelte';
+	import AsyncMultiSelect from '#lib/components/ui/async-multi-select.svelte';
+	import BadgeInput from '#lib/components/ui/badge-input.svelte';
 
 	let name = $state('');
 	let aliasItems = $state<ListItem[]>([]);

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { api } from '$lib/api';
-	import type { ProjectListResponse, Project } from '$lib/types/project';
-	import type { ResourceItem } from '$lib/types/resource';
-	import { debounce } from '$lib/utils/debounce';
+	import { api } from '#lib/api.js';
+	import type { ProjectListResponse, Project } from '#lib/types/project.js';
+	import type { ResourceItem } from '#lib/types/resource.js';
+	import { debounce } from '#lib/utils/debounce.js';
 	import { toast } from 'svelte-sonner';
-	import * as Command from '$lib/components/ui/command';
+	import * as Command from '#lib/components/ui/command/index.js';
 	import { Folder, BookBookmark, ArrowLeft } from '@lucide/svelte';
 
 	let { open = $bindable(false), item }: { open: boolean; item: ResourceItem | null } = $props();

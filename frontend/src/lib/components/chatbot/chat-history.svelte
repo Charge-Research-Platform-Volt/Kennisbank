@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { api } from '$lib/api';
+	import { api } from '#lib/api.js';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Trash } from '@lucide/svelte';
 	import Button from '../ui/button/button.svelte';
 	import { SvelteDate } from 'svelte/reactivity';
-	import { chatRefresh } from '$lib/state/chat-refresh.svelte';
+	import { chatRefresh } from '#lib/state/chat-refresh.svelte.js';
 
 	function focus(el: HTMLInputElement) {
 		el.focus();

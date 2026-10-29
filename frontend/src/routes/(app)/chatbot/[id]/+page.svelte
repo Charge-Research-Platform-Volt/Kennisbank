@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import ChatView from '$lib/components/chatbot/chat-view.svelte';
+	import ChatView from '#lib/components/chatbot/chat-view.svelte';
 </script>
 
 <ChatView

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { api } from '$lib/api';
+	import { api } from '#lib/api.js';
 	import { getContext, onMount } from 'svelte';
-	import { onHubEvent, type HubConnectionContext } from '$lib/state/hub-connection.svelte';
-	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
+	import { onHubEvent, type HubConnectionContext } from '#lib/state/hub-connection.svelte.js';
+	import Spinner from '#lib/components/ui/spinner/spinner.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import Checkbox from '#lib/components/ui/checkbox/checkbox.svelte';
 	import { RefreshCw } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 

@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { api } from '$lib/api';
+	import { api } from '#lib/api.js';
 	import { onMount } from 'svelte';
-	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
+	import Spinner from '#lib/components/ui/spinner/spinner.svelte';
 	import { CircleCheck, RefreshCw, TriangleAlert } from '@lucide/svelte';
-	import { Button } from '$lib/components/ui/button';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import UsageSection from './UsageSection.svelte';
 	import InfoTip from './InfoTip.svelte';
 

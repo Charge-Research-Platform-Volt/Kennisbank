@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { api } from '$lib/api';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import Input from '$lib/components/ui/input/input.svelte';
-	import { renderChangelog } from '$lib/changelog';
+	import { api } from '#lib/api.js';
+	import Button from '#lib/components/ui/button/button.svelte';
+	import Input from '#lib/components/ui/input/input.svelte';
+	import { renderChangelog } from '#lib/changelog.js';
 
 	let title = $state('');
 	let body = $state('');

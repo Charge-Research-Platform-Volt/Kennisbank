@@ -1,6 +1,6 @@
 <script lang="ts">
-	import * as Tooltip from '$lib/components/ui/tooltip';
-	import { buildSourceOrder, parseSegments, type ResolvedSource } from '$lib/chat/render';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+	import { buildSourceOrder, parseSegments, type ResolvedSource } from '#lib/chat/render.js';
 
 	const maxAuthorsShown = 3;
 

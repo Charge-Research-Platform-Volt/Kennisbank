@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { getContext, onMount, tick } from 'svelte';
-	import { debounce } from '$lib/utils/debounce';
+	import { debounce } from '#lib/utils/debounce.js';
 	import { afterNavigate, goto } from '$app/navigation';
-	import type { ProjectInfo } from '$lib/types/project';
-	import { api } from '$lib/api';
+	import type { ProjectInfo } from '#lib/types/project.js';
+	import { api } from '#lib/api.js';
 	import {
 		Search,
 		X,
@@ -20,27 +20,27 @@
 		CirclePlus,
 		MessageSquare
 	} from '@lucide/svelte';
-	import type { ResourceItem } from '$lib/types/resource';
-	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
-	import * as Table from '$lib/components/ui/table';
-	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
-	import { getFileIcon, getFileAction } from '$lib/utils/icons';
+	import type { ResourceItem } from '#lib/types/resource.js';
+	import * as Breadcrumb from '#lib/components/ui/breadcrumb/index.js';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import Spinner from '#lib/components/ui/spinner/spinner.svelte';
+	import { getFileIcon, getFileAction } from '#lib/utils/icons.js';
 	import { page } from '$app/state';
-	import { openFile } from '$lib/utils/openFile';
-	import Avatar from '$lib/components/ui/avatar/avatar.svelte';
-	import * as Popover from '$lib/components/ui/popover';
-	import Label from '$lib/components/ui/label/label.svelte';
-	import { userState } from '$lib/state/user.svelte';
-	import { confirm } from '$lib/state/confirm.svelte';
-	import * as Command from '$lib/components/ui/command';
-	import * as ContextMenu from '$lib/components/ui/context-menu';
-	import * as Dialog from '$lib/components/ui/dialog';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import Input from '$lib/components/ui/input/input.svelte';
-	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
-	import AsyncMultiSelect from '$lib/components/ui/async-multi-select.svelte';
+	import { openFile } from '#lib/utils/openFile.js';
+	import Avatar from '#lib/components/ui/avatar/avatar.svelte';
+	import * as Popover from '#lib/components/ui/popover/index.js';
+	import Label from '#lib/components/ui/label/label.svelte';
+	import { userState } from '#lib/state/user.svelte.js';
+	import { confirm } from '#lib/state/confirm.svelte.js';
+	import * as Command from '#lib/components/ui/command/index.js';
+	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import Button from '#lib/components/ui/button/button.svelte';
+	import Input from '#lib/components/ui/input/input.svelte';
+	import Textarea from '#lib/components/ui/textarea/textarea.svelte';
+	import AsyncMultiSelect from '#lib/components/ui/async-multi-select.svelte';
 	import { toast } from 'svelte-sonner';
-	import type { ListItem, PagedResult } from '$lib/types/results';
+	import type { ListItem, PagedResult } from '#lib/types/results.js';
 
 	const openInspector: (item: ResourceItem) => void = getContext('openInspector');
 	const registerRefresh: (fn: () => void) => void = getContext('registerRefresh');
@@ -255,7 +255,12 @@
 	// Run on page load
 	registerRefresh(fetchProject);
 	onMount(() => fetchProject());
-	afterNavigate(() => fetchProject());
+
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		return fetchProject();
+	});
 </script>
 
 <div class="flex h-full flex-1 flex-col gap-4 overflow-hidden p-4">
@@ -412,7 +417,7 @@
 						</div>
 					</Table.Head>
 					<Table.Head class="w-px whitespace-nowrap">Added By</Table.Head>
-					<Table.Head class="w-px whitespace-nowrap"></Table.Head>
+					<Table.Head class="w-px whitespace-nowrap" />
 				</tr>
 			</Table.Header>
 
@@ -496,7 +501,7 @@
 									<Table.Cell class="text-xs whitespace-nowrap text-muted-foreground"
 										>{entry.addedBy}</Table.Cell
 									>
-									<Table.Cell></Table.Cell>
+									<Table.Cell />
 								</Table.Row>
 							{/snippet}
 						</ContextMenu.Trigger>
@@ -700,6 +705,7 @@
 					<Button class="cursor-pointer" variant="outline" onclick={() => (editOpen = false)}
 						>Cancel</Button
 					>
+
 					<Button class="cursor-pointer" onclick={submitEdit} disabled={editSubmitting}>Save</Button
 					>
 				</div>

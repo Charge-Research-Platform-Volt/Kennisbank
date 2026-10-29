@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { api } from '$lib/api';
-	import { Button } from '$lib/components/ui/button';
-	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
+	import { api } from '#lib/api.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import Spinner from '#lib/components/ui/spinner/spinner.svelte';
 	import UsageChart from './UsageChart.svelte';
 	import InfoTip from './InfoTip.svelte';
 	import { describeMetric, METRIC_INFO } from './metric-info';

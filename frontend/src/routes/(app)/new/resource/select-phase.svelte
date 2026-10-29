@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { api } from '$lib/api';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import Input from '$lib/components/ui/input/input.svelte';
-	import Label from '$lib/components/ui/label/label.svelte';
+	import { api } from '#lib/api.js';
+	import Button from '#lib/components/ui/button/button.svelte';
+	import Input from '#lib/components/ui/input/input.svelte';
+	import Label from '#lib/components/ui/label/label.svelte';
 	import { Upload, FileText } from '@lucide/svelte';
-	import { hashFile, uploadFile } from '$lib/upload';
+	import { hashFile, uploadFile } from '#lib/upload.js';
 	import { toast } from 'svelte-sonner';
 
 	type Mode = 'file' | 'url';

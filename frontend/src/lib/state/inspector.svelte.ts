@@ -1,13 +1,13 @@
 import { afterNavigate } from '$app/navigation';
-import { api } from '$lib/api';
-import { getParam, setParams } from '$lib/utils/urlState';
+import { api } from '#lib/api.js';
+import { getParam, setParams } from '#lib/utils/urlState.js';
 import { onMount, setContext } from 'svelte';
 import type {
 	ResourceItem,
 	EntityType,
 	NavigationTarget,
 	RawResourceItem
-} from '$lib/types/resource';
+} from '#lib/types/resource.js';
 
 export async function fetchInspectorItem(target: NavigationTarget): Promise<ResourceItem> {
 	const endpoint =
@@ -68,7 +68,12 @@ export function createInspectorState() {
 	}
 
 	onMount(() => syncFromUrl());
-	afterNavigate(() => syncFromUrl());
+
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		return syncFromUrl();
+	});
 
 	return {
 		get selectedItem() {

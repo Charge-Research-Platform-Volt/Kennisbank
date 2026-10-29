@@ -1,6 +1,6 @@
 # Weekly dependency updates. Minor and patch updates are grouped into one PR per ecosystem;
 # major updates come as separate PRs, since those are the ones that can break things.
-# Dockerfile base images use floating tags (sdk:10.0, node:24-alpine, ...) that already pick up
+# Dockerfile base images use floating tags (sdk:10.0, node:26-alpine, ...) that already pick up
 # patches on every build, so they're not managed here; runtime major bumps are done deliberately.
 version: 2
 

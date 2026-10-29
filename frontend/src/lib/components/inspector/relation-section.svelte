@@ -1,11 +1,11 @@
 <script lang="ts">
-	import type { ListItem } from '$lib/types/results';
-	import type { RelationItem, NavigationTarget, EntityType } from '$lib/types/resource';
-	import { getFileIcon } from '$lib/utils/icons';
+	import type { ListItem } from '#lib/types/results.js';
+	import type { RelationItem, NavigationTarget, EntityType } from '#lib/types/resource.js';
+	import { getFileIcon } from '#lib/utils/icons.js';
 	import { getContext, untrack } from 'svelte';
 	import { X } from '@lucide/svelte';
-	import { debounce } from '$lib/utils/debounce';
-	import RoleBadge from '$lib/components/role-badge.svelte';
+	import { debounce } from '#lib/utils/debounce.js';
+	import RoleBadge from '#lib/components/role-badge.svelte';
 
 	let {
 		label,

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import Input from '$lib/components/ui/input/input.svelte';
-	import Button from '$lib/components/ui/button/button.svelte';
+	import Input from '#lib/components/ui/input/input.svelte';
+	import Button from '#lib/components/ui/button/button.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { toast } from 'svelte-sonner';
-	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
+	import Checkbox from '#lib/components/ui/checkbox/checkbox.svelte';
 	import { onMount } from 'svelte';
 
 	const redirect = page.url.searchParams.get('redirect');

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { userState } from '$lib/state/user.svelte';
-	import { getGreeting } from '$lib/greetings';
+	import { userState } from '#lib/state/user.svelte.js';
+	import { getGreeting } from '#lib/greetings.js';
 	import { Search, Library, BookBookmark, MessageCircleMore } from '@lucide/svelte';
 
 	const greeting = $derived(getGreeting(userState.user?.firstName ?? ''));
