@@ -2,6 +2,7 @@ using KnowledgeBank.Data;
 using KnowledgeBank.Utils;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using KnowledgeBank.Services.Domain;
 
 namespace KnowledgeBank.Services.Storage;
 
@@ -12,6 +13,7 @@ namespace KnowledgeBank.Services.Storage;
 /// - A user avatar (ID exists in Users table)
 /// - A OCR cache (ID exists in Resources table)
 /// - A chat attachment (ID exists in chat attachments)
+/// - A project document file, preview or OCR cache (version ID exists in project document versions)
 /// </summary>
 public class StorageCleanupService(IServiceProvider serviceProvider, EnvironmentConfig environmentConfig) : BackgroundService
 {
@@ -87,6 +89,30 @@ public class StorageCleanupService(IServiceProvider serviceProvider, Environment
 
             try
             {
+                // Project document files are "project-docs/{versionId}", plus "-preview" and "-ocr" derivatives
+                if (objectName.StartsWith(ProjectDocumentService.StoragePrefix, StringComparison.Ordinal))
+                {
+                    string versionPart = StripSuffix(StripSuffix(objectName[ProjectDocumentService.StoragePrefix.Length..], "-preview"), "-ocr");
+
+                    if (!Guid.TryParse(versionPart, out Guid versionId))
+                    {
+                        logger.Warning("Object {ObjectName} is not a valid project document key, skipping...", objectName);
+                        Interlocked.Increment(ref skippedCount);
+                        return;
+                    }
+
+                    if (await context.ProjectDocumentVersions.AnyAsync(v => v.Id == versionId, stoppingToken))
+                    {
+                        Interlocked.Increment(ref skippedCount);
+                        return;
+                    }
+                    
+                    logger.Information("Deleting orphaned project document object {ObjectName}", objectName);
+                    await storageService.DeleteObjectAsync(bucketName, objectName);
+                    Interlocked.Increment(ref deletedCount);
+                    return;
+                }
+
                 // OCR cache objects are named "{resourceId}-ocr" — strip the suffix to recover the owning resource ID
                 bool isOcrCache = objectName.EndsWith("-ocr", StringComparison.Ordinal);
                 string guidPart = isOcrCache ? objectName[..^"-ocr".Length] : objectName;
@@ -136,4 +162,7 @@ public class StorageCleanupService(IServiceProvider serviceProvider, Environment
             "Storage cleanup finished. Deleted: {Deleted}, Skipped: {Skipped}, Errors: {Errors}",
             deletedCount, skippedCount, errorCount);
     }
+
+    private static string StripSuffix(string value, string suffix)
+        => value.EndsWith(suffix, StringComparison.Ordinal) ? value[..^suffix.Length] : value;
 }

@@ -132,6 +132,11 @@ public class UserService(DatabaseContext db)
     public async Task<int> GetLatestChangelogIdAsync()
         => await db.Changelog.MaxAsync(c => (int?)c.Id) ?? 0;
 
-    public async Task RemoveFromAllProjectsAsync(string userId)
-        => await db.ProjectMemberRelations.Where(m => m.UserId == userId).ExecuteDeleteAsync();
+    public async Task RemoveFromAllProjectsAsync(string userId) 
+    {
+        await db.ProjectMemberRelations.Where(m => m.UserId == userId).ExecuteDeleteAsync();
+
+        // Documents stay (they belong to the project, not the person), only the personal grants go
+        await db.ProjectDocumentAccess.Where(a => a.UserId == userId).ExecuteDeleteAsync();
+    }
 }
