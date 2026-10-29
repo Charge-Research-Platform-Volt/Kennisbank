@@ -257,7 +257,7 @@
 			</div>
 
 			<!-- Scrollable body -->
-			<div class="flex flex-1 flex-col overflow-y-auto">
+			<div class="flex flex-1 flex-col overflow-y-auto wrap-anywhere">
 				<!-- Title row -->
 				<div class="flex items-start gap-2 border-b px-3 py-3">
 					<Icon size={16} class="mt-0.75 shrink-0 text-muted-foreground" />
