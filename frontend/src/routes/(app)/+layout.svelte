@@ -71,7 +71,7 @@
 			<Sidebar />
 
 			<!-- Page content -->
-			<div class="flex flex-1 flex-col">
+			<div class="flex min-w-0 flex-1 flex-col">
 				<!-- Mistral status banner -->
 				{#if mistralStatusState.current.status === 'down' && !mistralDegradedDismissed}
 					<div
