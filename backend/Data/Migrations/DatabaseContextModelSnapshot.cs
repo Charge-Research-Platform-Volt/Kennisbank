@@ -19,7 +19,7 @@ namespace KnowledgeBank.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.13")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -624,6 +624,230 @@ namespace KnowledgeBank.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("projects");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ProjectDocuments.ProjectDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("created-by");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created-on");
+
+                    b.Property<string>("GeneralAccessType")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("general-access-type");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project-id");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("source");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("title");
+
+                    b.Property<Guid>("TypeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("type-id");
+
+                    b.Property<DateTime>("UpdatedOn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated-on");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("visibility");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("TypeId");
+
+                    b.ToTable("project-documents");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ProjectDocuments.ProjectDocumentAccess", b =>
+                {
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document-id");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text")
+                        .HasColumnName("user-id");
+
+                    b.Property<string>("AccessType")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("access-type");
+
+                    b.HasKey("DocumentId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("project-document-access");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ProjectDocuments.ProjectDocumentType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created-by");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created-on");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("project-document-types");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("8c4f36d0-0c30-48c6-a073-816a7bfa87d0"),
+                            CreatedOn = new DateTime(2026, 10, 29, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Name = "Project plan"
+                        },
+                        new
+                        {
+                            Id = new Guid("7e1fbccd-5af9-4270-8133-0191eae9203d"),
+                            CreatedOn = new DateTime(2026, 10, 29, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Name = "Draft research report"
+                        },
+                        new
+                        {
+                            Id = new Guid("9b3eeb99-8bb2-4d92-9b54-aa27f6e20657"),
+                            CreatedOn = new DateTime(2026, 10, 29, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Name = "Minutes"
+                        },
+                        new
+                        {
+                            Id = new Guid("ea01f3cd-4cbe-43cf-bd39-3bb5ba5f26f8"),
+                            CreatedOn = new DateTime(2026, 10, 29, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Name = "Evaluation"
+                        });
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ProjectDocuments.ProjectDocumentVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document-id");
+
+                    b.Property<string>("EmbeddingError")
+                        .HasColumnType("text")
+                        .HasColumnName("embedding-error");
+
+                    b.Property<int>("EmbeddingFailures")
+                        .HasColumnType("integer")
+                        .HasColumnName("embedding-failures");
+
+                    b.Property<DateTime?>("EmbeddingLastAttempt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("embedding-last-attempt");
+
+                    b.Property<string>("EmbeddingStatus")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("embedding-status");
+
+                    b.Property<string>("Extension")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("extension");
+
+                    b.Property<string>("ExternalId")
+                        .HasColumnType("text")
+                        .HasColumnName("external-id");
+
+                    b.Property<string>("ExternalRevisionId")
+                        .HasColumnType("text")
+                        .HasColumnName("external-revision-id");
+
+                    b.Property<string>("ExtractedText")
+                        .HasColumnType("text")
+                        .HasColumnName("extracted-text");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text")
+                        .HasColumnName("note");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("original-file-name");
+
+                    b.Property<string>("PreviewStatus")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("preview-status");
+
+                    b.Property<long?>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size-bytes");
+
+                    b.Property<string>("UploadedBy")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("uploaded-by");
+
+                    b.Property<DateTime>("UploadedOn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("uploaded-on");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("version-number");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId", "VersionNumber")
+                        .IsUnique();
+
+                    b.ToTable("project-document-versions");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.ProjectFolderRelation", b =>
@@ -1445,6 +1669,55 @@ namespace KnowledgeBank.Data.Migrations
                     b.Navigation("TargetPerson");
                 });
 
+            modelBuilder.Entity("KnowledgeBank.Models.ProjectDocuments.ProjectDocument", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KnowledgeBank.Models.ProjectDocuments.ProjectDocumentType", "Type")
+                        .WithMany("Documents")
+                        .HasForeignKey("TypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+
+                    b.Navigation("Type");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ProjectDocuments.ProjectDocumentAccess", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.ProjectDocuments.ProjectDocument", "Document")
+                        .WithMany("Access")
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KnowledgeBank.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Document");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ProjectDocuments.ProjectDocumentVersion", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.ProjectDocuments.ProjectDocument", "Document")
+                        .WithMany("Versions")
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Document");
+                });
+
             modelBuilder.Entity("KnowledgeBank.Models.ProjectFolderRelation", b =>
                 {
                     b.HasOne("KnowledgeBank.Models.Project", "ChildFolder")
@@ -1729,6 +2002,18 @@ namespace KnowledgeBank.Data.Migrations
                     b.Navigation("ProjectMemberRelations");
 
                     b.Navigation("ProjectTagRelations");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ProjectDocuments.ProjectDocument", b =>
+                {
+                    b.Navigation("Access");
+
+                    b.Navigation("Versions");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ProjectDocuments.ProjectDocumentType", b =>
+                {
+                    b.Navigation("Documents");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.Region", b =>

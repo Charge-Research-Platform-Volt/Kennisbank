@@ -127,6 +127,22 @@ public class S3StorageService : IStorageService
     }
 
     /// <inheritdoc />
+    public async Task CopyObjectAsync(string bucketName, string sourceObjectName, string destinationObjectName)
+    {
+        logger.Information("Copying {SourceObjectName} to {DestinationObjectName} in {BucketName}", sourceObjectName, destinationObjectName, bucketName);
+
+        CopyObjectRequest request = new()
+        {
+            SourceBucket = bucketName,
+            SourceKey = sourceObjectName,
+            DestinationBucket = bucketName,
+            DestinationKey = destinationObjectName
+        };
+
+        await client.CopyObjectAsync(request);
+    }
+
+    /// <inheritdoc />
     public async Task<IDictionary<string, string>> GetObjectMetadataAsync(string bucketName, string objectName)
     {
         logger.Information("Retrieving metadata of {ObjectName} from {BucketName}", objectName, bucketName);
