@@ -23,6 +23,7 @@ jobs:
       backend: ${{ inputs.run_all && 'true' || steps.filter.outputs.backend }}
       frontend: ${{ inputs.run_all && 'true' || steps.filter.outputs.frontend }}
       webscrape: ${{ inputs.run_all && 'true' || steps.filter.outputs.webscrape }}
+      gotenberg: ${{ inputs.run_all && 'true' || steps.filter.outputs.gotenberg }}
     steps:
       - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
@@ -38,6 +39,8 @@ jobs:
               - 'frontend/**'
             webscrape:
               - 'webscrape-service/**'
+            gotenberg:
+              - 'gotenberg/**'
 
   backend:
     name: Backend
@@ -82,4 +85,16 @@ jobs:
       - uses: docker/build-push-action@v7
         with:
           context: ./webscrape-service
+          push: false
+
+  gotenberg:
+    name: Gotenberg
+    needs: changes
+    if: needs.changes.outputs.gotenberg == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/build-push-action@v7
+        with:
+          context: ./gotenberg
           push: false

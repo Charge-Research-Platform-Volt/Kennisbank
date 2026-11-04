@@ -250,6 +250,9 @@ namespace KnowledgeBank
             // Webscrape service client
             builder.Services.AddSingleton<WebscrapeClient>();
 
+            // Document conversion client
+            builder.Services.AddSingleton<DocumentConversionService>();
+
             // VPN Service
             builder.Services.AddSingleton<VPNService>();
 
