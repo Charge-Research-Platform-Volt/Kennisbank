@@ -10,7 +10,7 @@ public class DocumentConversionService
 
     public DocumentConversionService(EnvironmentConfig environmentConfig)
     {
-        Uri endpoint = new(environmentConfig.GetVariableValue(EnvironmentVariable.GOTENBURG_URL).TrimEnd('/') + "/");
+        Uri endpoint = new(environmentConfig.GetVariableValue(EnvironmentVariable.GOTENBERG_URL).TrimEnd('/') + "/");
         // Slightly longer than Gotenberg's own --api-timeout of 120s, so its error comes through instead of ours
         httpClient = new HttpClient { BaseAddress = endpoint, Timeout = TimeSpan.FromSeconds(150) };
     }

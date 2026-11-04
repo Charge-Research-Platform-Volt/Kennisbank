@@ -4,10 +4,11 @@ using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using PgVector = Pgvector.Vector;
 using KnowledgeBank.Services.Search;
+using KnowledgeBank.Models.ProjectDocuments;
 
 namespace KnowledgeBank.Services.Vector;
 
-public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, EmbeddingService aiClientProvider, ChunkSearchIndexService chunkSearchIndexService, LibrarySearchIndexService librarySearchIndexService) : IVectorStore
+public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, EmbeddingService aiClientProvider, ChunkSearchIndexService chunkSearchIndexService, LibrarySearchIndexService librarySearchIndexService, ProjectDocumentChunkSearchIndexService projectDocumentChunkSearchIndexService) : IVectorStore
 {
     /// <inheritdoc/>
     public async Task ReplaceResourcePointsAsync(Guid resourceId, List<(string Text, ChunkType Type, int Part)> chunks)
@@ -193,5 +194,61 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, E
             .OrderBy(c => c.ChunkPart)
             .Select(c => c.ChunkText)
             .ToListAsync();
+    }
+
+        /// <inheritdoc />
+    public async Task ReplaceProjectDocumentPointsAsync(Guid documentId, Guid projectId, Guid versionId, List<(string Text, int Part)> chunks)
+    {
+        float[][] embeddings = await aiClientProvider.GenerateEmbeddings(chunks.Select(c => c.Text).ToList());
+
+        await using var database = await dbFactory.CreateDbContextAsync();
+        List<ProjectDocumentChunkDocument> searchDocs = [];
+
+        for (int i = 0; i < chunks.Count; i++)
+        {
+            var chunk = chunks[i];
+
+            ProjectDocumentChunk documentChunk = new()
+            {
+                Id = Guid.NewGuid(),
+                DocumentId = documentId,
+                VersionId = versionId,
+                ChunkPart = chunk.Part,
+                ChunkText = chunk.Text,
+                Embedding = new PgVector(embeddings[i]),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            database.ProjectDocumentChunks.Add(documentChunk);
+            searchDocs.Add(new ProjectDocumentChunkDocument
+            {
+                Id = documentChunk.Id.ToString(),
+                DocumentId = documentId.ToString(),
+                ProjectId = projectId.ToString(),
+                VersionId = versionId.ToString(),
+                ChunkPart = chunk.Part,
+                ChunkText = chunk.Text,
+                Vectors = new() { ["default"] = embeddings[i] }
+            });
+        }
+
+        // Swap the previous version's chunks for these in one transaction
+        await using (var transaction = await database.Database.BeginTransactionAsync())
+        {
+            await database.ProjectDocumentChunks.Where(c => c.DocumentId == documentId).ExecuteDeleteAsync();
+            await database.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+
+        await projectDocumentChunkSearchIndexService.DeleteByDocumentIdAsync(documentId);
+        await projectDocumentChunkSearchIndexService.IndexChunksAsync(searchDocs);
+    }
+
+    /// <inheritdoc />
+    public async Task DeletePointsByProjectDocumentIdAsync(Guid documentId)
+    {
+        await using var database = await dbFactory.CreateDbContextAsync();
+        await database.ProjectDocumentChunks.Where(c => c.DocumentId == documentId).ExecuteDeleteAsync();
+        await projectDocumentChunkSearchIndexService.DeleteByDocumentIdAsync(documentId);
     }
 }

@@ -199,6 +199,7 @@ namespace KnowledgeBank
             builder.Services.AddScoped<ChunkSearchIndexService>();
             builder.Services.AddScoped<TaxonomySearchIndexService>();
             builder.Services.AddScoped<AttachmentChunkSearchIndexService>();
+            builder.Services.AddScoped<ProjectDocumentChunkSearchIndexService>();
 
             // Background services
             builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
@@ -365,12 +366,14 @@ namespace KnowledgeBank
                 var chunkSearchIndexService = scope.ServiceProvider.GetRequiredService<ChunkSearchIndexService>();
                 var taxonomySearchIndexService = scope.ServiceProvider.GetRequiredService<TaxonomySearchIndexService>();
                 var attachmentChunkSearchIndexService = scope.ServiceProvider.GetRequiredService<AttachmentChunkSearchIndexService>();
+                var projectDocumentChunkSearchIndexService = scope.ServiceProvider.GetRequiredService<ProjectDocumentChunkSearchIndexService>();
 
                 await Task.WhenAll(
                     librarySearchIndexService.EnsureIndexConfiguredAsync(),
                     chunkSearchIndexService.EnsureIndexConfiguredAsync(),
                     taxonomySearchIndexService.EnsureIndexConfiguredAsync(),
-                    attachmentChunkSearchIndexService.EnsureIndexConfiguredAsync()
+                    attachmentChunkSearchIndexService.EnsureIndexConfiguredAsync(),
+                    projectDocumentChunkSearchIndexService.EnsureIndexConfiguredAsync()
                 );
             }
 

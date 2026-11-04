@@ -710,6 +710,45 @@ namespace KnowledgeBank.Data.Migrations
                     b.ToTable("project-document-access");
                 });
 
+            modelBuilder.Entity("KnowledgeBank.Models.ProjectDocuments.ProjectDocumentChunk", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("ChunkPart")
+                        .HasColumnType("integer")
+                        .HasColumnName("chunk-part");
+
+                    b.Property<string>("ChunkText")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("chunk-text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created-at");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document-id");
+
+                    b.Property<Vector>("Embedding")
+                        .HasColumnType("vector(1024)")
+                        .HasColumnName("embedding");
+
+                    b.Property<Guid>("VersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("version-id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId");
+
+                    b.ToTable("project-document-chunks");
+                });
+
             modelBuilder.Entity("KnowledgeBank.Models.ProjectDocuments.ProjectDocumentType", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1705,6 +1744,17 @@ namespace KnowledgeBank.Data.Migrations
                     b.Navigation("Document");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ProjectDocuments.ProjectDocumentChunk", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.ProjectDocuments.ProjectDocument", "Document")
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Document");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.ProjectDocuments.ProjectDocumentVersion", b =>

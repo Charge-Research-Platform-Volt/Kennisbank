@@ -41,6 +41,7 @@ namespace KnowledgeBank.Data
         public DbSet<ProjectDocumentType> ProjectDocumentTypes { get; set; }
         public DbSet<ProjectDocumentVersion> ProjectDocumentVersions { get; set; }
         public DbSet<ProjectDocumentAccess> ProjectDocumentAccess { get; set; }
+        public DbSet<ProjectDocumentChunk> ProjectDocumentChunks { get; set; }
         
         
         public DbSet<LibraryItem> LibraryItems { get; set; }
@@ -311,6 +312,20 @@ namespace KnowledgeBank.Data
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasIndex(a => a.UserId);
+            });
+
+            modelBuilder.Entity<ProjectDocumentChunk>(entity =>
+            {
+                // Database-level cascade, so deleting a document or its project also removes the chunks
+                entity.HasOne(c => c.Document)
+                    .WithMany()
+                    .HasForeignKey(c => c.DocumentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(c => c.Embedding)
+                    .HasColumnType("vector(1024)");
+
+                entity.HasIndex(c => c.DocumentId);
             });
 
             // One-time seed of the built-in types. Don't edit or remove these lines: EF turns that into an

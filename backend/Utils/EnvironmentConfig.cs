@@ -56,7 +56,7 @@ public enum EnvironmentVariable
     WEBSCRAPE_SERVICE_URL,
 
     // Document conversion (Gotenberg)
-    GOTENBURG_URL,
+    GOTENBERG_URL,
 }
 
 public class EnvironmentConfig(IConfiguration configuration)
