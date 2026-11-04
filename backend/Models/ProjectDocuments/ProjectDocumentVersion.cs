@@ -41,6 +41,12 @@ public class ProjectDocumentVersion
     [Column("preview-status")]
     public EmbeddingStatus PreviewStatus { get; set; } = EmbeddingStatus.Pending;
 
+    [Column("preview-failures")]
+    public int PreviewFailures { get; set; }
+
+    [Column("preview-last-attempt")]
+    public DateTime? PreviewLastAttempt { get; set; }
+
     [Column("embedding-status")]
     public EmbeddingStatus EmbeddingStatus { get; set; } = EmbeddingStatus.Pending;
 

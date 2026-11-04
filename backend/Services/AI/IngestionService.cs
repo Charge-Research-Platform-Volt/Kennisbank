@@ -319,12 +319,22 @@ public class IngestionService(
 
     /// <summary>
     /// Processes an uploaded version: records its size, converts Word files to a PDF preview, and makes the
-    /// latest version searchable for the project chat. Never throws; failures end up in the version's statuses.
+    /// latest version searchable for the project chat. The flags let a retry redo only the step that failed.
+    /// Never throws; failures end up in the version's statuses.
     /// </summary>
-    public async Task RunProjectDocumentPipelineAsync(Guid versionId)
+    public async Task RunProjectDocumentPipelineAsync(Guid versionId, bool preview = true, bool embedding = true)
     {
         ProjectDocumentVersion? version = await projectDocumentService.GetVersionAsync(versionId);
         if (version == null) return; // Document deleted while this waited in the queue
+
+        // A PDF is its own preview, so that step needs neither the file nor Gotenberg
+        if (preview && version.Extension == "pdf")
+        {
+            await projectDocumentService.UpdateVersionAsync(versionId, v => ApplyPreviewStatus(v, EmbeddingStatus.Completed));
+            preview = false;
+        }
+
+        if (!preview && !embedding) return;
 
         logger.Information("Project document pipeline started for version {VersionId}", versionId);
 
@@ -342,8 +352,8 @@ public class IngestionService(
             logger.Error(ex, "Failed to load the file of project document version {VersionId}", versionId);
             await projectDocumentService.UpdateVersionAsync(versionId, v =>
             {
-                if (v.Extension != "pdf") v.PreviewStatus = EmbeddingStatus.Failed;
-                ApplyEmbeddingStatus(v, EmbeddingStatus.Failed, ex.Message);
+                if (preview) ApplyPreviewStatus(v, EmbeddingStatus.Failed);
+                if (embedding) ApplyEmbeddingStatus(v, EmbeddingStatus.Failed, ex.Message);
             });
             return;
         }
@@ -351,35 +361,28 @@ public class IngestionService(
         await projectDocumentService.UpdateVersionAsync(versionId, v => v.SizeBytes = file.LongLength);
 
         // Preview first: that's what the upload is waiting to see. Neither step depends on the other
-        await CreateProjectDocumentPreviewAsync(version, file);
-        await EmbedProjectDocumentVersionAsync(version, file);
+        if (preview) await CreateProjectDocumentPreviewAsync(version, file);
+        if (embedding) await EmbedProjectDocumentVersionAsync(version, file);
 
         logger.Information("Project document pipeline finished for version {VersionId}", versionId);
     }
 
     private async Task CreateProjectDocumentPreviewAsync(ProjectDocumentVersion version, byte[] file)
     {
-        // A PDF is its own preview
-        if (version.Extension == "pdf")
-        {
-            await projectDocumentService.UpdateVersionAsync(version.Id, v => v.PreviewStatus = EmbeddingStatus.Completed);
-            return;
-        }
-
         try
         {
-            await projectDocumentService.UpdateVersionAsync(version.Id, v => v.PreviewStatus = EmbeddingStatus.Processing);
+            await projectDocumentService.UpdateVersionAsync(version.Id, v => ApplyPreviewStatus(v, EmbeddingStatus.Processing));
 
             // The conversion disposes the stream it sends, so it gets its own copy of the file
             using MemoryStream pdf = await documentConversionService.ConvertToPdfAsync(new MemoryStream(file), $"document.{version.Extension}");
             await storageService.UploadObjectAsync(bucketName, ProjectDocumentService.PreviewKey(version.Id), pdf, contentType: "application/pdf");
 
-            await projectDocumentService.UpdateVersionAsync(version.Id, v => v.PreviewStatus = EmbeddingStatus.Completed);
+            await projectDocumentService.UpdateVersionAsync(version.Id, v => ApplyPreviewStatus(v, EmbeddingStatus.Completed));
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Preview conversion failed for project document version {VersionId}", version.Id);
-            await projectDocumentService.UpdateVersionAsync(version.Id, v => v.PreviewStatus = EmbeddingStatus.Failed);
+            await projectDocumentService.UpdateVersionAsync(version.Id, v => ApplyPreviewStatus(v, EmbeddingStatus.Failed));
         }
     }
 
@@ -431,6 +434,15 @@ public class IngestionService(
         if (status is EmbeddingStatus.Processing or EmbeddingStatus.Failed) version.EmbeddingLastAttempt = DateTime.UtcNow;
         if (status == EmbeddingStatus.Failed) version.EmbeddingFailures++;
         if (status == EmbeddingStatus.Completed) version.EmbeddingFailures = 0;
+    }
+
+    private static void ApplyPreviewStatus(ProjectDocumentVersion version, EmbeddingStatus status)
+    {
+        version.PreviewStatus = status;
+
+        if (status is EmbeddingStatus.Processing or EmbeddingStatus.Failed) version.PreviewLastAttempt = DateTime.UtcNow;
+        if (status == EmbeddingStatus.Failed) version.PreviewFailures++;
+        if (status == EmbeddingStatus.Completed) version.PreviewFailures = 0;
     }
 
     private string DescribeFailure(Exception ex)

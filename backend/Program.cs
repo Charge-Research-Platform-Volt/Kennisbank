@@ -359,6 +359,20 @@ namespace KnowledgeBank
                         .SetProperty(e => e.EmbeddingStatus, EmbeddingStatus.Failed)
                         .SetProperty(e => e.EmbeddingError, interruptedMessage));
 
+                int interruptedVersions = await db.ProjectDocumentVersions
+                    .Where(v => v.EmbeddingStatus == EmbeddingStatus.Pending || v.EmbeddingStatus == EmbeddingStatus.Processing)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(v => v.EmbeddingStatus, EmbeddingStatus.Failed)
+                        .SetProperty(v => v.EmbeddingError, interruptedMessage));
+
+                // No failure is counted, so the retry service picks these up on its first pass
+                int interruptedPreviews = await db.ProjectDocumentVersions
+                    .Where(v => v.PreviewStatus == EmbeddingStatus.Pending || v.PreviewStatus == EmbeddingStatus.Processing)
+                    .ExecuteUpdateAsync(s => s.SetProperty(v => v.PreviewStatus, EmbeddingStatus.Failed));
+
+                if (interruptedVersions + interruptedPreviews > 0)
+                    Log.Warning("Marked {Embeddings} project document embeddings and {Previews} previews as failed after an interrupted run", interruptedVersions, interruptedPreviews);
+
                 if (interruptedResources + interruptedEntities > 0)
                     Log.Warning("Marked {Resources} resources and {Entities} entities as failed after an interrupted embedding run", interruptedResources, interruptedEntities);
 

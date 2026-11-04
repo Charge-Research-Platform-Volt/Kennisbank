@@ -67,6 +67,16 @@ public class ProjectDocumentChunkSearchIndexService(MeilisearchClient client)
             Filter = $"projectId = \"{projectId}\""
         });
     }
+    
+    /// <summary>
+    /// Rebuilds the index from Postgres, also dropping chunks whose delete never reached Meilisearch.
+    /// Meilisearch runs one index's tasks in order, so the add never races the clear.
+    /// </summary>
+    public async Task ReplaceAllAsync(IEnumerable<ProjectDocumentChunkDocument> documents)
+    {
+        await client.Index(IndexName).DeleteAllDocumentsAsync();
+        await IndexChunksAsync(documents);
+    }
 }
 
 public class ProjectDocumentChunkDocument

@@ -228,6 +228,144 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
         await Api.WaitUntilAsync(async () => (await MeiliChunksAsync(documentId)).Count == 0, "Meilisearch chunks to be removed");
     }
 
+    // Retries and admin actions
+
+    [Fact]
+    public async Task PreviewRetry_CountsFailures_AndOnSuccessLeavesTheChunksAlone()
+    {
+        var (creator, _) = await fixture.LoginAsNewUserAsync();
+        Guid projectId = await creator.CreateProjectAsync();
+        Guid documentId, versionId;
+        using IServiceScope scope = fixture.Services.CreateScope();
+        IngestionService ingestion = scope.ServiceProvider.GetRequiredService<IngestionService>();
+
+        fixture.Ai.FailConversions = true;
+        try
+        {
+            documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: Docx(Api.Unique("Retry me")));
+            versionId = await LatestVersionIdAsync(documentId);
+            ProjectDocumentVersion failed = await WaitForPipelineAsync(versionId);
+            Assert.Equal((EmbeddingStatus.Failed, 1), (failed.PreviewStatus, failed.PreviewFailures));
+            Assert.NotNull(failed.PreviewLastAttempt);
+
+            await ingestion.RunProjectDocumentPipelineAsync(versionId, preview: true, embedding: false);
+            Assert.Equal(2, (await VersionAsync(versionId))!.PreviewFailures);
+        }
+        finally
+        {
+            fixture.Ai.FailConversions = false;
+        }
+
+        Guid[] chunksBefore = [.. (await ChunksAsync(documentId)).Select(c => c.Id)];
+
+        await ingestion.RunProjectDocumentPipelineAsync(versionId, preview: true, embedding: false);
+
+        ProjectDocumentVersion version = (await VersionAsync(versionId))!;
+        Assert.Equal((EmbeddingStatus.Completed, 0), (version.PreviewStatus, version.PreviewFailures));
+        Assert.True(fixture.Storage.Exists(BucketName, ProjectDocumentService.PreviewKey(versionId)));
+
+        // Re-embedding would have swapped in new chunk rows; a preview-only retry must not touch them
+        Assert.Equal(EmbeddingStatus.Completed, version.EmbeddingStatus);
+        Assert.Equal(chunksBefore, (await ChunksAsync(documentId)).Select(c => c.Id));
+    }
+
+    [Fact]
+    public async Task PdfPreview_DoesNotNeedGotenberg()
+    {
+        var (creator, _) = await fixture.LoginAsNewUserAsync();
+        Guid projectId = await creator.CreateProjectAsync();
+
+        fixture.Ai.FailConversions = true;
+        try
+        {
+            Guid documentId = await creator.CreateProjectDocumentAsync(projectId);
+            ProjectDocumentVersion version = await WaitForPipelineAsync(await LatestVersionIdAsync(documentId));
+
+            Assert.Equal((EmbeddingStatus.Completed, 0), (version.PreviewStatus, version.PreviewFailures));
+        }
+        finally
+        {
+            fixture.Ai.FailConversions = false;
+        }
+    }
+
+    [Fact]
+    public async Task ReindexSearch_RebuildsProjectDocumentChunks_AndDropsStaleOnes()
+    {
+        var (creator, _) = await fixture.LoginAsNewUserAsync();
+        Guid projectId = await creator.CreateProjectAsync();
+        Guid documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: Docx(Api.Unique("Kept by reindex")));
+        await WaitForPipelineAsync(await LatestVersionIdAsync(documentId));
+        int chunkCount = (await ChunksAsync(documentId)).Count;
+
+        // A chunk of a document that no longer exists, as left behind when a delete never reached Meilisearch
+        Guid staleDocumentId = Guid.NewGuid();
+        await fixture.Services.CreateScope().ServiceProvider.GetRequiredService<ProjectDocumentChunkSearchIndexService>().IndexChunksAsync([new()
+        {
+            Id = Guid.NewGuid().ToString(),
+            DocumentId = staleDocumentId.ToString(),
+            ProjectId = projectId.ToString(),
+            VersionId = Guid.NewGuid().ToString(),
+            ChunkPart = 0,
+            ChunkText = "stale",
+            Vectors = new() { ["default"] = FakeAiServer.VectorFor("stale") }
+        }]);
+        await Api.WaitUntilAsync(async () => (await MeiliChunksAsync(staleDocumentId)).Count == 1, "the stale chunk in Meilisearch");
+
+        HttpClient owner = await fixture.LoginAsAdminAsync();
+        await Api.EnsureAsync(await owner.PostAsync("/admin/reindex-search", null), HttpStatusCode.Accepted);
+
+        await Api.WaitUntilAsync(async () =>
+            (await MeiliChunksAsync(staleDocumentId)).Count == 0 && (await MeiliChunksAsync(documentId)).Count == chunkCount,
+            "reindex to drop the stale chunk and keep the real ones", timeoutSeconds: 60);
+    }
+
+    [Fact]
+    public async Task ReEmbed_RedoesTheLatestVersion_AndRevivesPreviewsTheRetriesGaveUpOn()
+    {
+        var (creator, _) = await fixture.LoginAsNewUserAsync();
+        Guid projectId = await creator.CreateProjectAsync();
+
+        Guid embeddedDocument = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: Docx(Api.Unique("Re-embed me")));
+        Guid embeddedVersion = await LatestVersionIdAsync(embeddedDocument);
+        await WaitForPipelineAsync(embeddedVersion);
+        Guid[] chunksBefore = [.. (await ChunksAsync(embeddedDocument)).Select(c => c.Id)];
+
+        Guid previewDocument, previewVersion;
+        fixture.Ai.FailConversions = true;
+        try
+        {
+            previewDocument = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: Docx(Api.Unique("No preview")));
+            previewVersion = await LatestVersionIdAsync(previewDocument);
+            await WaitForPipelineAsync(previewVersion);
+        }
+        finally
+        {
+            fixture.Ai.FailConversions = false;
+        }
+
+        using (IServiceScope scope = fixture.Services.CreateScope())
+            await scope.ServiceProvider.GetRequiredService<DatabaseContext>().ProjectDocumentVersions
+                .Where(v => v.Id == previewVersion)
+                .ExecuteUpdateAsync(s => s.SetProperty(v => v.PreviewFailures, Services.Background.EmbeddingRetryService.MaxFailures));
+
+        HttpClient owner = await fixture.LoginAsAdminAsync();
+        await Api.EnsureAsync(await owner.PostAsync("/admin/reembed?includeResources=false&includeEntities=false", null), HttpStatusCode.Accepted);
+        await Api.WaitUntilAsync(async () =>
+            !(await owner.GetFromJsonAsync<System.Text.Json.JsonElement>("/admin/reembed/status")).GetProperty("isRunning").GetBoolean(),
+            "the re-embed run to finish", timeoutSeconds: 60);
+
+        List<ProjectDocumentChunk> chunksAfter = await ChunksAsync(embeddedDocument);
+        Assert.NotEmpty(chunksAfter);
+        Assert.Empty(chunksAfter.Select(c => c.Id).Intersect(chunksBefore));
+        Assert.All(chunksAfter, c => Assert.Equal(embeddedVersion, c.VersionId));
+        Assert.Equal(EmbeddingStatus.Completed, (await VersionAsync(embeddedVersion))!.EmbeddingStatus);
+
+        ProjectDocumentVersion revived = (await VersionAsync(previewVersion))!;
+        Assert.Equal((EmbeddingStatus.Completed, 0), (revived.PreviewStatus, revived.PreviewFailures));
+        Assert.True(fixture.Storage.Exists(BucketName, ProjectDocumentService.PreviewKey(previewVersion)));
+    }
+
     #region Helpers
 
     /// <summary>A minimal valid Word document with one paragraph per string.</summary>

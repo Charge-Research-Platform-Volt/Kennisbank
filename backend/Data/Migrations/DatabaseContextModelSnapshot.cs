@@ -859,6 +859,14 @@ namespace KnowledgeBank.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("original-file-name");
 
+                    b.Property<int>("PreviewFailures")
+                        .HasColumnType("integer")
+                        .HasColumnName("preview-failures");
+
+                    b.Property<DateTime?>("PreviewLastAttempt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("preview-last-attempt");
+
                     b.Property<string>("PreviewStatus")
                         .IsRequired()
                         .HasColumnType("text")

@@ -28,10 +28,10 @@ public class AdminController(
 
     [HttpPost("reembed")]
     [Authorize(Policy = "RequireOwner")]
-    [SwaggerOperation(Summary = "Re-embed resources, persons, and organisations (optionally scoped to only resources/entities, and/or only those not currently Completed)")]
+    [SwaggerOperation(Summary = "Re-embed resources, persons, organisations and project documents (optionally scoped to some of them, and/or only those not currently Completed)")]
     [SwaggerResponse(202, "Queued")]
     [SwaggerResponse(409, "A re-embed is already running")]
-    public IActionResult ReEmbed([FromQuery] bool onlyIncomplete = false, [FromQuery] bool includeResources = true, [FromQuery] bool includeEntities = true)
+    public IActionResult ReEmbed([FromQuery] bool onlyIncomplete = false, [FromQuery] bool includeResources = true, [FromQuery] bool includeEntities = true, [FromQuery] bool includeProjectDocuments = true)
     {
         if (!reembedRunState.TryStart(out CancellationToken runToken))
             return Conflict("A re-embed is already running.");
@@ -137,6 +137,54 @@ public class AdminController(
                     catch (Exception ex) { logger.Error(ex, "Failed to re-embed organisation {Id}", organisation.Id); }
                 }, token);
 
+                if (includeProjectDocuments)
+                {
+                    Dictionary<Guid, (bool Preview, bool Embedding)> versionRuns = [];
+
+                    using (var scope = serviceScopeFactory.CreateScope())
+                    {
+                        var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+
+                        // Only the latest version of each document is searchable, so only those get re-embedded
+                        Guid[] embedIds = await db.ProjectDocumentVersions
+                            .Where(v => v.VersionNumber == db.ProjectDocumentVersions.Where(o => o.DocumentId == v.DocumentId).Max(o => o.VersionNumber))
+                            .Where(v => !onlyIncomplete || v.EmbeddingStatus != EmbeddingStatus.Completed)
+                            .Select(v => v.Id)
+                            .ToArrayAsync(token);
+
+                        // Failed previews (any version, also ones the retry service gave up on) get another go as well
+                        Guid[] previewIds = await db.ProjectDocumentVersions
+                            .Where(v => v.PreviewStatus == EmbeddingStatus.Failed)
+                            .Select(v => v.Id)
+                            .ToArrayAsync(token);
+
+                        await db.ProjectDocumentVersions.Where(v => embedIds.Contains(v.Id))
+                            .ExecuteUpdateAsync(s => s
+                                .SetProperty(v => v.EmbeddingStatus, EmbeddingStatus.Pending)
+                                .SetProperty(v => v.EmbeddingError, (string?)null)
+                                .SetProperty(v => v.EmbeddingFailures, 0), token);
+
+                        await db.ProjectDocumentVersions.Where(v => previewIds.Contains(v.Id))
+                            .ExecuteUpdateAsync(s => s
+                                .SetProperty(v => v.PreviewStatus, EmbeddingStatus.Pending)
+                                .SetProperty(v => v.PreviewFailures, 0), token);
+
+                        foreach (Guid id in embedIds) versionRuns[id] = (Preview: false, Embedding: true);
+                        foreach (Guid id in previewIds) versionRuns[id] = (Preview: true, Embedding: versionRuns.ContainsKey(id));
+                    }
+
+                    // Lower than for resources: each run is a whole file, and every Word file goes through Gotenberg
+                    logger.Information("Re-embedding {Count} project document versions", versionRuns.Count);
+                    await RunBoundedAsync(versionRuns.ToList(), 5, async run =>
+                    {
+                        using var scope = serviceScopeFactory.CreateScope();
+                        var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
+
+                        try { await ingestionService.RunProjectDocumentPipelineAsync(run.Key, run.Value.Preview, run.Value.Embedding); }
+                        catch (Exception ex) { logger.Error(ex, "Failed to re-embed project document version {Id}", run.Key); }
+                    }, token);
+                }
+
                 logger.Information(token.IsCancellationRequested ? "Re-embedding cancelled" : "Re-embedding complete");
             }
             finally
@@ -227,7 +275,7 @@ public class AdminController(
 
     [HttpPost("reindex-search")]
     [Authorize(Policy = "RequireOwner")]
-    [SwaggerOperation(Summary = "Rebuild the Meilisearch index for all resources, persons, and organisations")]
+    [SwaggerOperation(Summary = "Rebuild the Meilisearch indexes for the library, chunks, taxonomy and project document chunks")]
     [SwaggerResponse(202, "Queued")]
     public IActionResult ReindexSearch()
     {
@@ -299,6 +347,26 @@ public class AdminController(
             });
 
             await chunkSearchIndexService.IndexChunksAsync(entityChunkDocs);
+
+            var projectDocumentChunks = await db.ProjectDocumentChunks
+                .AsNoTracking()
+                .Include(c => c.Document)
+                .Where(c => c.Embedding != null)
+                .ToListAsync(token);
+            logger.Information("Reindexing {Count} project document chunks", projectDocumentChunks.Count);
+
+            // Rebuilt from scratch rather than added to, so chunks whose delete never reached Meilisearch go too
+            await scope.ServiceProvider.GetRequiredService<ProjectDocumentChunkSearchIndexService>().ReplaceAllAsync(
+                projectDocumentChunks.Select(c => new ProjectDocumentChunkDocument
+                {
+                    Id = c.Id.ToString(),
+                    DocumentId = c.DocumentId.ToString(),
+                    ProjectId = c.Document!.ProjectId.ToString(),
+                    VersionId = c.VersionId.ToString(),
+                    ChunkPart = c.ChunkPart,
+                    ChunkText = c.ChunkText,
+                    Vectors = new() { ["default"] = c.Embedding!.ToArray() }
+                }));
 
             await RunBoundedAsync(resourceChunks.Where(c => c.ChunkType == ChunkType.MetaData).ToList(), 10, async c =>
                 await searchIndexService.UpdateVectorAsync(c.ResourceId, c.Embedding!.ToArray()), token);
