@@ -6,7 +6,7 @@ using System.Linq.Expressions;
 
 namespace KnowledgeBank.Services.Domain;
 
-public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxonomySearchIndexService)
+public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxonomySearchIndexService, ProjectDocumentChunkSearchIndexService projectDocumentChunkSearchIndexService)
 {
     public const string TypeTag = "project";
 
@@ -388,6 +388,10 @@ public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxon
     public async Task<bool> DeleteAsync(Guid id)
     {
         await DeleteProjectTreeAsync(id);
+        // Postgres cascades documents, versions, access and chunks with the project row, and StorageCleanupService
+        // removes their project-docs/ files after the grace period. Only the search index needs an explicit delete
+        await projectDocumentChunkSearchIndexService.DeleteByProjectIdAsync(id);
+        
         return true;
     }
 

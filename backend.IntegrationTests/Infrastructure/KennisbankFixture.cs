@@ -58,6 +58,7 @@ public sealed class KennisbankFixture : IAsyncLifetime
         settings[nameof(EnvironmentVariable.MISTRAL_ENDPOINT)] = Ai.MistralEndpoint;
         settings[nameof(EnvironmentVariable.WEBSCRAPE_SERVICE_URL)] = Ai.Url + "/webscrape";
         settings[nameof(EnvironmentVariable.HEADSCALE_URL)] = Ai.Url + "/headscale";
+        settings[nameof(EnvironmentVariable.GOTENBERG_URL)] = Ai.Url + "/gotenberg";
         settings["OwnerUser__Email"] = OwnerEmail;
         settings["OwnerUser__Password"] = OwnerPassword;
         settings["EMAIL_SMTP_HOST"] = "smtp.invalid";

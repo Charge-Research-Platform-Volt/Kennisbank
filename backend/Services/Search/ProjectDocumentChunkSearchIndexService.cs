@@ -59,6 +59,14 @@ public class ProjectDocumentChunkSearchIndexService(MeilisearchClient client)
 
         return [.. result.Hits.OrderByDescending(h => h.RankingScore)];
     }
+
+    public async Task DeleteByProjectIdAsync(Guid projectId)
+    {
+        await client.Index(IndexName).DeleteDocumentsAsync(new DeleteDocumentsQuery
+        {
+            Filter = $"projectId = \"{projectId}\""
+        });
+    }
 }
 
 public class ProjectDocumentChunkDocument

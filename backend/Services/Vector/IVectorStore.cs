@@ -38,10 +38,10 @@ public interface IVectorStore
     Task<List<string>> GetContentChunkTextsAsync(Guid resourceId);
 
     /// <summary>
-    /// Embed the given chunks of a project document version, then replace all existing chunks of the document with them.
-    /// Existing chunks are left untouched if embedding fails.
+    /// Replaces a document's chunks with those of the given version, but only while that version is still the
+    /// document's latest. Returns false (and changes nothing) when a newer version exists or the document is gone.
     /// </summary>
-    Task ReplaceProjectDocumentPointsAsync(Guid documentId, Guid projectId, Guid versionId, List<(string Text, int Part)> chunks);
+    Task<bool> ReplaceProjectDocumentPointsAsync(Guid documentId, Guid versionId, List<(string Text, int Part)> chunks);
 
     /// <summary>
     /// Delete all chunks for a project document

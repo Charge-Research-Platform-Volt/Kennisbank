@@ -197,24 +197,44 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, E
     }
 
         /// <inheritdoc />
-    public async Task ReplaceProjectDocumentPointsAsync(Guid documentId, Guid projectId, Guid versionId, List<(string Text, int Part)> chunks)
+    public async Task<bool> ReplaceProjectDocumentPointsAsync(Guid documentId, Guid versionId, List<(string Text, int Part)> chunks)
     {
+        // Embed outside transaction
         float[][] embeddings = await aiClientProvider.GenerateEmbeddings(chunks.Select(c => c.Text).ToList());
 
         await using var database = await dbFactory.CreateDbContextAsync();
+        await using var transaction = await database.Database.BeginTransactionAsync();
+
+        // The row lock serialises swaps per document, so a slow older version can't overwrite a newer one's chunks.
+        // Adding a version also updates this row, so it waits for us (or we see its commited version below).
+        ProjectDocument? document = await database.ProjectDocuments
+            .FromSql($"SELECT * FROM \"project-documents\" WHERE id = {documentId} FOR UPDATE")
+            .AsNoTracking()
+            .FirstOrDefaultAsync();
+
+        if (document == null) return false;
+
+        Guid latestId = await database.ProjectDocumentVersions
+            .Where(v => v.DocumentId == documentId)
+            .OrderByDescending(v => v.VersionNumber)
+            .Select(v => v.Id)
+            .FirstOrDefaultAsync();
+
+        if (latestId != versionId) return false;
+
         List<ProjectDocumentChunkDocument> searchDocs = [];
 
         for (int i = 0; i < chunks.Count; i++)
         {
-            var chunk = chunks[i];
+            var (Text, Part) = chunks[i];
 
             ProjectDocumentChunk documentChunk = new()
             {
                 Id = Guid.NewGuid(),
                 DocumentId = documentId,
                 VersionId = versionId,
-                ChunkPart = chunk.Part,
-                ChunkText = chunk.Text,
+                ChunkPart = Part,
+                ChunkText = Text,
                 Embedding = new PgVector(embeddings[i]),
                 CreatedAt = DateTime.UtcNow
             };
@@ -224,24 +244,24 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, E
             {
                 Id = documentChunk.Id.ToString(),
                 DocumentId = documentId.ToString(),
-                ProjectId = projectId.ToString(),
+                ProjectId = document.ProjectId.ToString(),
                 VersionId = versionId.ToString(),
-                ChunkPart = chunk.Part,
-                ChunkText = chunk.Text,
+                ChunkPart = Part,
+                ChunkText = Text,
                 Vectors = new() { ["default"] = embeddings[i] }
             });
         }
 
-        // Swap the previous version's chunks for these in one transaction
-        await using (var transaction = await database.Database.BeginTransactionAsync())
-        {
-            await database.ProjectDocumentChunks.Where(c => c.DocumentId == documentId).ExecuteDeleteAsync();
-            await database.SaveChangesAsync();
-            await transaction.CommitAsync();
-        }
+        await database.ProjectDocumentChunks.Where(c => c.DocumentId == documentId).ExecuteDeleteAsync();
+        await database.SaveChangesAsync();
 
+        // Queued while holding the lock, so Meilisearch receives the swaps in the same order as Postgres
+        // (it processes one index's tasks in order). If this throws, the transaction rolls back.
         await projectDocumentChunkSearchIndexService.DeleteByDocumentIdAsync(documentId);
         await projectDocumentChunkSearchIndexService.IndexChunksAsync(searchDocs);
+
+        await transaction.CommitAsync();
+        return true;
     }
 
     /// <inheritdoc />

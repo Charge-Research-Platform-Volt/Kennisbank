@@ -6,6 +6,7 @@ using KnowledgeBank.Data;
 using KnowledgeBank.IntegrationTests.Infrastructure;
 using KnowledgeBank.Services.Domain;
 using KnowledgeBank.Services.Storage;
+using KnowledgeBank.Services.Vector;
 using KnowledgeBank.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -250,7 +251,8 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
         // so its own v2 hits the unique index: the same interleaving as two people uploading at once
         await using DatabaseContext db = CreateContextWithInterceptor(new AfterMaxVersionQuery(async () =>
             await Api.ReadGuidAsync(await creator.PostAsJsonAsync(versionsUrl, new { objectName = winningUpload, fileName = "document.pdf" }))));
-        ProjectDocumentService service = new(db, fixture.Storage, fixture.Services.GetRequiredService<EnvironmentConfig>());
+        using IServiceScope scope = fixture.Services.CreateScope();
+        ProjectDocumentService service = new(db, fixture.Storage, fixture.Services.GetRequiredService<EnvironmentConfig>(), scope.ServiceProvider.GetRequiredService<IVectorStore>());
         var document = (await service.GetAsync(projectId, documentId))!;
 
         Guid? lost = await service.AddVersionAsync(document, new() { ObjectName = losingUpload, FileName = "document.pdf" }, document.CreatedBy);
@@ -286,19 +288,29 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
     }
 
     [Fact]
-    public async Task WordPreview_IsNotReadyUntilConverted_ButCanBeDownloaded()
+    public async Task WordPreview_IsUnavailableUntilConverted_ButCanBeDownloaded()
     {
         var (creator, _) = await fixture.LoginAsNewUserAsync();
         Guid projectId = await creator.CreateProjectAsync();
-        Guid documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "minutes.docx", content: "word"u8.ToArray());
-        Guid versionId = await LatestVersionIdAsync(creator, projectId, documentId);
-        string url = $"/projects/{projectId}/documents/{documentId}/versions/{versionId}";
 
-        Assert.Equal(HttpStatusCode.Conflict, (await creator.GetAsync($"{url}/preview")).StatusCode);
+        // Without a conversion the preview never becomes ready, whichever status the pipeline is at when we ask
+        fixture.Ai.FailConversions = true;
+        try
+        {
+            Guid documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "minutes.docx", content: "word"u8.ToArray());
+            Guid versionId = await LatestVersionIdAsync(creator, projectId, documentId);
+            string url = $"/projects/{projectId}/documents/{documentId}/versions/{versionId}";
 
-        HttpResponseMessage download = await creator.GetAsync($"{url}/download");
-        await Api.EnsureAsync(download, HttpStatusCode.OK);
-        Assert.Equal("application/vnd.openxmlformats-officedocument.wordprocessingml.document", download.Content.Headers.ContentType?.MediaType);
+            Assert.Equal(HttpStatusCode.Conflict, (await creator.GetAsync($"{url}/preview")).StatusCode);
+
+            HttpResponseMessage download = await creator.GetAsync($"{url}/download");
+            await Api.EnsureAsync(download, HttpStatusCode.OK);
+            Assert.Equal("application/vnd.openxmlformats-officedocument.wordprocessingml.document", download.Content.Headers.ContentType?.MediaType);
+        }
+        finally
+        {
+            fixture.Ai.FailConversions = false;
+        }
     }
 
     // Deletion

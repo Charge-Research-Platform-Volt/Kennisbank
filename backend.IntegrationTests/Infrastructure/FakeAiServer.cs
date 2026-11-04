@@ -12,11 +12,21 @@ namespace KnowledgeBank.IntegrationTests.Infrastructure;
 /// Local stand-in for the OpenAI-compatible embeddings API and the Mistral API, so tests never
 /// reach a real (paid) service. Embeddings are deterministic: the same text always gets the same vector.
 /// Mistral has no routes on purpose; any call to it fails with a 404.
-/// Also answers the one Headscale lookup that deleting a user makes.
+/// Also answers the one Headscale lookup that deleting a user makes, and stands in for Gotenberg's
+/// Word-to-PDF conversion.
 /// </summary>
 public sealed class FakeAiServer : IDisposable
 {
     public const int Dimensions = 1024;
+
+    /// <summary>What every "conversion" returns, whatever was sent.</summary>
+    public static readonly byte[] ConvertedPdf = "%PDF-1.4 converted by fake gotenberg"u8.ToArray();
+
+    /// <summary>
+    /// Makes conversions fail with a 503 while set. Global rather than targeted, because the multipart body is a
+    /// compressed docx with nothing to match on; tests in the collection run one at a time, so set it in a try/finally.
+    /// </summary>
+    public volatile bool FailConversions;
 
     private readonly WireMockServer server = WireMockServer.Start();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> failMarkers = new();
@@ -73,6 +83,17 @@ public sealed class FakeAiServer : IDisposable
         server
             .Given(Request.Create().WithPath("/headscale/api/v1/user").UsingGet())
             .RespondWith(Response.Create().WithStatusCode(200).WithHeader("Content-Type", "application/json").WithBody("""{"users":[]}"""));
+
+        server
+            .Given(Request.Create().WithPath("/gotenberg/forms/libreoffice/convert").UsingPost())
+            .RespondWith(Response.Create().WithCallback(_ => FailConversions
+                ? new WireMock.ResponseMessage { StatusCode = 503, BodyData = Body("LibreOffice is unavailable") }
+                : new WireMock.ResponseMessage
+                {
+                    StatusCode = 200,
+                    Headers = new Dictionary<string, WireMock.Types.WireMockList<string>> { ["Content-Type"] = new("application/pdf") },
+                    BodyData = new WireMock.Util.BodyData { BodyAsBytes = ConvertedPdf, DetectedBodyType = WireMock.Types.BodyType.Bytes }
+                }));
     }
 
     /// <summary>

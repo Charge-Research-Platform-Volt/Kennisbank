@@ -8,12 +8,25 @@ using System.Text;
 using Microsoft.AspNetCore.SignalR;
 using KnowledgeBank.Hubs;
 using KnowledgeBank.Services.Storage;
+using KnowledgeBank.Models.ProjectDocuments;
 
 namespace KnowledgeBank.Services.AI;
 
 #pragma warning disable SKEXP0050, SKEXP0001
 
-public class IngestionService(IVectorStore vectorStore, TextExtractionService textExtractionService, ResourceService resourceService, PersonService personService, OrganisationService organisationService, EnvironmentConfig environmentConfig, MistralStatusService mistralStatusService, IHubContext<AppHub, IAppHubClient> hubContext, IStorageService storageService)
+public class IngestionService(
+    IVectorStore vectorStore, 
+    TextExtractionService textExtractionService, 
+    ResourceService resourceService, 
+    PersonService personService, 
+    OrganisationService organisationService, 
+    EnvironmentConfig environmentConfig, 
+    MistralStatusService mistralStatusService, 
+    IHubContext<AppHub, IAppHubClient> hubContext, 
+    IStorageService storageService,
+    ProjectDocumentService projectDocumentService,
+    DocumentConversionService documentConversionService
+    )
 {
     private readonly Serilog.ILogger logger = Log.ForContext<IngestionService>();
     private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
@@ -90,10 +103,7 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
         } catch (Exception ex)
         {
             logger.Error(ex, "Resource pipeline failed for ID: {Id}", id);
-            string message = mistralStatusService.Current.Status == MistralAvailability.Down
-                ? "Mistral's AI service currently appears to be down or degraded, this isn't a bug on our end. Chech status.mistral.ai for the latest status and try again once it recovers."
-                : ex.Message;
-            await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Failed, message);
+            await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Failed, DescribeFailure(ex));
         }
     }
 
@@ -306,4 +316,125 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
             logger.Warning(ex, "Failed to broadcast embedding status change for {Id}", id);
         }
     }
+
+    /// <summary>
+    /// Processes an uploaded version: records its size, converts Word files to a PDF preview, and makes the
+    /// latest version searchable for the project chat. Never throws; failures end up in the version's statuses.
+    /// </summary>
+    public async Task RunProjectDocumentPipelineAsync(Guid versionId)
+    {
+        ProjectDocumentVersion? version = await projectDocumentService.GetVersionAsync(versionId);
+        if (version == null) return; // Document deleted while this waited in the queue
+
+        logger.Information("Project document pipeline started for version {VersionId}", versionId);
+
+        byte[] file;
+        try
+        {
+            ObjectDownloadResponse download = await storageService.DownloadObjectAsync(bucketName, ProjectDocumentService.StorageKey(versionId));
+            await using Stream downloadStream = download.Stream;
+            using MemoryStream memoryStream = new();
+            await downloadStream.CopyToAsync(memoryStream);
+            file = memoryStream.ToArray();
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Failed to load the file of project document version {VersionId}", versionId);
+            await projectDocumentService.UpdateVersionAsync(versionId, v =>
+            {
+                if (v.Extension != "pdf") v.PreviewStatus = EmbeddingStatus.Failed;
+                ApplyEmbeddingStatus(v, EmbeddingStatus.Failed, ex.Message);
+            });
+            return;
+        }
+
+        await projectDocumentService.UpdateVersionAsync(versionId, v => v.SizeBytes = file.LongLength);
+
+        // Preview first: that's what the upload is waiting to see. Neither step depends on the other
+        await CreateProjectDocumentPreviewAsync(version, file);
+        await EmbedProjectDocumentVersionAsync(version, file);
+
+        logger.Information("Project document pipeline finished for version {VersionId}", versionId);
+    }
+
+    private async Task CreateProjectDocumentPreviewAsync(ProjectDocumentVersion version, byte[] file)
+    {
+        // A PDF is its own preview
+        if (version.Extension == "pdf")
+        {
+            await projectDocumentService.UpdateVersionAsync(version.Id, v => v.PreviewStatus = EmbeddingStatus.Completed);
+            return;
+        }
+
+        try
+        {
+            await projectDocumentService.UpdateVersionAsync(version.Id, v => v.PreviewStatus = EmbeddingStatus.Processing);
+
+            // The conversion disposes the stream it sends, so it gets its own copy of the file
+            using MemoryStream pdf = await documentConversionService.ConvertToPdfAsync(new MemoryStream(file), $"document.{version.Extension}");
+            await storageService.UploadObjectAsync(bucketName, ProjectDocumentService.PreviewKey(version.Id), pdf, contentType: "application/pdf");
+
+            await projectDocumentService.UpdateVersionAsync(version.Id, v => v.PreviewStatus = EmbeddingStatus.Completed);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Preview conversion failed for project document version {VersionId}", version.Id);
+            await projectDocumentService.UpdateVersionAsync(version.Id, v => v.PreviewStatus = EmbeddingStatus.Failed);
+        }
+    }
+
+    private async Task EmbedProjectDocumentVersionAsync(ProjectDocumentVersion version, byte[] file)
+    {
+        // Only the latest version is searchable. Checking up front saves an OCR run when a newer version arrived
+        // while this one waited; ReplaceProjectDocumentPointsAsync checks again atomically for the race during processing.
+        if (!await projectDocumentService.IsLatestVersionAsync(version.DocumentId, version.Id))
+        {
+            await projectDocumentService.UpdateVersionAsync(version.Id, v=> ApplyEmbeddingStatus(v, EmbeddingStatus.Completed));
+            return;
+        }
+
+        try
+        {
+            await projectDocumentService.UpdateVersionAsync(version.Id, v => ApplyEmbeddingStatus(v, EmbeddingStatus.Processing));
+
+            // The fileId makes OCR cache to project-docs/{id}-ocr, next to the file, where delete and cleanup expect it
+            OcrResult ocrResult = await textExtractionService.ExtractOcrResultFromFileAsync(
+                new MemoryStream(file), $".{version.Extension}", bucketName, ProjectDocumentService.StorageKey(version.Id)
+            );
+
+            string? text = string.IsNullOrWhiteSpace(ocrResult.Text) ? null : ocrResult.Text;
+            await projectDocumentService.UpdateVersionAsync(version.Id, v => v.ExtractedText = text);
+
+            if (text == null) logger.Warning("No text extracted from project document version {VersionId}", version.Id);
+
+            // No text still replaces: the previous version's chunks must not answer for this one
+            List<(string Text, int Part)> chunks = [.. SplitTextIntoChunks(text ?? "", markdownSplit: true).Select((chunk, index) => (chunk, index))];
+            bool replaced = await vectorStore.ReplaceProjectDocumentPointsAsync(version.DocumentId, version.Id, chunks);
+
+            if (!replaced)
+                logger.Information("Project document version {VersionId} was superseded or deleted during processing, chunks not indexed", version.Id);
+
+            await projectDocumentService.UpdateVersionAsync(version.Id, v => ApplyEmbeddingStatus(v, EmbeddingStatus.Completed));
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Embedding failed for project document version {VersionId}", version.Id);
+            await projectDocumentService.UpdateVersionAsync(version.Id, v => ApplyEmbeddingStatus(v, EmbeddingStatus.Failed, DescribeFailure(ex)));
+        }
+    }
+
+    private static void ApplyEmbeddingStatus(ProjectDocumentVersion version, EmbeddingStatus status, string? error = null)
+    {
+        version.EmbeddingStatus = status;
+        version.EmbeddingError = error;
+
+        if (status is EmbeddingStatus.Processing or EmbeddingStatus.Failed) version.EmbeddingLastAttempt = DateTime.UtcNow;
+        if (status == EmbeddingStatus.Failed) version.EmbeddingFailures++;
+        if (status == EmbeddingStatus.Completed) version.EmbeddingFailures = 0;
+    }
+
+    private string DescribeFailure(Exception ex)
+        => mistralStatusService.Current.Status == MistralAvailability.Down
+            ? "Mistral's AI service currently appears to be down or degraded, this isn't a bug on our end. Check status.mistral.ai for the latest status and try again once it recovers."
+            : ex.Message;
 }

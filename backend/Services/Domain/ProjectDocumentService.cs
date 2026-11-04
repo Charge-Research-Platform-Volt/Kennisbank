@@ -2,13 +2,14 @@ using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using KnowledgeBank.Models.ProjectDocuments;
 using KnowledgeBank.Services.Storage;
+using KnowledgeBank.Services.Vector;
 using KnowledgeBank.Utils;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
 namespace KnowledgeBank.Services.Domain;
 
-public class ProjectDocumentService(DatabaseContext db, IStorageService storageService, EnvironmentConfig environmentConfig)
+public class ProjectDocumentService(DatabaseContext db, IStorageService storageService, EnvironmentConfig environmentConfig, IVectorStore vectorStore)
 {
     // Keeps these files out of reach of /files/{id}, which serves any GUID key without access checks
     public const string StoragePrefix = "project-docs/";
@@ -140,11 +141,21 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
         return await db.Users.CountAsync(u => ids.Contains(u.Id) && !u.IsDeleted) == ids.Length;
     }
 
+    public async Task<ProjectDocumentVersion?> GetVersionAsync(Guid versionId)
+        => await db.ProjectDocumentVersions.AsNoTracking().FirstOrDefaultAsync(v => v.Id == versionId);
+
+    public async Task<bool> IsLatestVersionAsync(Guid documentId, Guid versionId)
+        => await db.ProjectDocumentVersions
+            .Where(v => v.DocumentId == documentId)
+            .OrderByDescending(v => v.VersionNumber)
+            .Select(v => v.Id)
+            .FirstOrDefaultAsync() == versionId;
+
     #endregion
 
     #region Commands
 
-    public async Task<Guid> CreateAsync(Guid rootProjectId, ProjectDocumentCreateDto dto, string userId)
+    public async Task<(Guid DocumentId, Guid versionId)> CreateAsync(Guid rootProjectId, ProjectDocumentCreateDto dto, string userId)
     {
         Guid documentId = Guid.NewGuid();
         // The upload already sits at project-docs/{objectName}, so it becomes the first version as is
@@ -167,7 +178,7 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
         });
 
         await db.SaveChangesAsync();
-        return documentId;
+        return (documentId, versionId);
     }
 
     /// <summary>Returns the new version's id, or null when someone else saved a version with the same number first.</summary>
@@ -238,6 +249,11 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
         await db.SaveChangesAsync();
         logger.Information("Project document {DocumentId} ({Title}) deleted by {UserId}", document.Id, document.Title, deletedBy);
 
+        // Postgres chunks went with the cascade; Meilisearch needs its own delete. Stale ones there can't leak,
+        // since chat search only asks for document ids the user can view, and reindex-search clears them.
+        try { await vectorStore.DeletePointsByProjectDocumentIdAsync(document.Id); }
+        catch (Exception ex) { logger.Warning(ex, "Failed to delete search chunks of document {DocumentId}", document.Id); }
+
         // Best effort: whatever fails here is picked up by StorageCleanupService
         foreach (Guid versionId in versionIds)
         {
@@ -247,6 +263,27 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
                 catch (Exception ex) { logger.Warning(ex, "Failed to delete {Key}, left for storage cleanup", key); }
             }
         } 
+    }
+
+    /// <summary>
+    /// Applies a change to a version. Returns false when the version was deleted, also when that happens mid-save
+    /// </summary>
+    public async Task<bool> UpdateVersionAsync(Guid versionId, Action<ProjectDocumentVersion> update)
+    {
+        ProjectDocumentVersion? version = await db.ProjectDocumentVersions.FindAsync(versionId);
+        if (version == null) return false;
+
+        update(version);
+        try
+        {
+            await db.SaveChangesAsync();
+            return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // The document was deleted between loading and saving: the UPDATE hit 0 rows
+            return false;
+        }
     }
 
     #endregion

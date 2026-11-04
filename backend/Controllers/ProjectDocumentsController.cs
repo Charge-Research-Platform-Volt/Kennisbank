@@ -9,6 +9,8 @@ using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using KnowledgeBank.Services.Background;
+using KnowledgeBank.Services.AI;
 
 namespace KnowledgeBank.Controllers;
 
@@ -20,7 +22,9 @@ public class ProjectDocumentsController(
     ProjectService projectService,
     IStorageService storageService,
     IAuthorizationService authorizationService,
-    EnvironmentConfig environmentConfig
+    EnvironmentConfig environmentConfig,
+    IBackgroundTaskQueue taskQueue,
+    IServiceScopeFactory serviceScopeFactory
 ) : AppControllerBase
 {
     private const int MAX_TITLE_LENGTH = 300;
@@ -68,7 +72,8 @@ public class ProjectDocumentsController(
         if (!await projectDocumentTypeService.ExistsAsync(dto.TypeId)) return Problem("Document type not found.", statusCode: 400);
         if (await ValidateAccessAsync(dto.Visibility, dto.GeneralAccessType, dto.Grants) is string accessError) return Problem(accessError, statusCode: 400);
 
-        Guid documentId = await projectDocumentService.CreateAsync(projectId, dto, UserId);
+        var (documentId, versionId) = await projectDocumentService.CreateAsync(projectId, dto, UserId);
+        QueuePipeline(versionId);
         return Ok(documentId);
     }
 
@@ -126,6 +131,8 @@ public class ProjectDocumentsController(
         Guid? versionId = await projectDocumentService.AddVersionAsync(document!, dto, UserId);
         if (versionId == null)
             return Problem("Someone else added a version at the same time. Please try again.", statusCode: 409);
+
+        QueuePipeline(versionId.Value);
 
         return Ok(versionId);
     }
@@ -248,6 +255,13 @@ public class ProjectDocumentsController(
 
         return null;
     }
+
+    private void QueuePipeline(Guid versionId)
+        => taskQueue.QueueBackgroundWorkItem(async _ =>
+        {
+            using var scope = serviceScopeFactory.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IngestionService>().RunProjectDocumentPipelineAsync(versionId);
+        });
 
     #endregion
 }
