@@ -41,6 +41,15 @@
 	import AsyncMultiSelect from '#lib/components/ui/async-multi-select.svelte';
 	import { toast } from 'svelte-sonner';
 	import type { ListItem, PagedResult } from '#lib/types/results.js';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+	import {
+		projectDocuments,
+		downloadUrl,
+		getVisibilityIcon,
+		isProcessing,
+		visibilityLabels
+	} from '#lib/project-documents.js';
+	import type { ProjectDocument } from '#lib/types/project-document.js';
 
 	const openInspector: (item: ResourceItem) => void = getContext('openInspector');
 	const registerRefresh: (fn: () => void) => void = getContext('registerRefresh');
@@ -53,13 +62,57 @@
 
 	let searchInput = $state('');
 
-	let filteredFolders = $derived(
-		projectInfo?.folders.filter((e) => e.title.toLowerCase().includes(searchInput.toLowerCase())) ??
-			[]
-	);
-	let filteredItems = $derived(
-		projectInfo?.items.filter((e) => e.name.toLowerCase().includes(searchInput.toLowerCase())) ?? []
-	);
+	// Case-insensitive in the user's own language; both sides must lowercase the same way
+	const matchesSearch = (text: string) =>
+		text.toLocaleLowerCase().includes(searchInput.toLocaleLowerCase());
+
+	let filteredFolders = $derived(projectInfo?.folders.filter((e) => matchesSearch(e.title)) ?? []);
+	let filteredItems = $derived(projectInfo?.items.filter((e) => matchesSearch(e.name)) ?? []);
+
+	// Project documents directly in this folder (or the root), filtered by the same search box
+	let documents = $state<ProjectDocument[]>([]);
+	let filteredDocuments = $derived(documents.filter((d) => matchesSearch(d.title)));
+
+	// Poll while the background pipeline is still converting or indexing something; stops by itself
+	let anyProcessing = $derived(documents.some((d) => isProcessing(d.latestVersion)));
+
+	$effect(() => {
+		if (!anyProcessing) return;
+		const timer = setInterval(fetchDocuments, 3000);
+		return () => clearInterval(timer);
+	});
+
+	async function fetchDocuments() {
+		const projectId = page.params.id!;
+
+		try {
+			const result = await projectDocuments.list(projectId);
+			// A slow response for the folder we just left must not overwrite this one's list
+			if (projectId === page.params.id) documents = result;
+		} catch (e) {
+			// No toast: this also runs every few seconds while polling
+			console.error('Failed to load project documents', e);
+		}
+	}
+
+	function openDocument(doc: ProjectDocument) {
+		goto(`/projects/${page.params.id}/documents/${doc.id}`);
+	}
+
+	// The response is an attachment, so the browser downloads it without leaving the page
+	function downloadDocument(doc: ProjectDocument) {
+		window.location.href = downloadUrl(page.params.id!, doc.id, doc.latestVersion.id);
+	}
+
+	async function deleteDocument(doc: ProjectDocument) {
+		try {
+			await projectDocuments.delete(page.params.id!, doc.id);
+			await fetchDocuments();
+			toast.success('Successfully deleted document.');
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : 'Failed to delete document.');
+		}
+	}
 
 	let visibleTags = $derived(projectInfo?.tags.filter(Boolean).slice(0, MAX_VISIBLE_TAGS) ?? []);
 	let hiddenTagCount = $derived((projectInfo?.tags.filter(Boolean).length ?? 0) - MAX_VISIBLE_TAGS);
@@ -254,11 +307,17 @@
 
 	// Run on page load
 	registerRefresh(fetchProject);
-	onMount(() => fetchProject());
+	onMount(() => {
+		fetchProject();
+		fetchDocuments();
+	});
 
 	afterNavigate(({ shallow, type }) => {
 		if (shallow && type === 'goto') return;
 
+		// Clear first, so the previous folder's documents don't flash in the new one
+		documents = [];
+		fetchDocuments();
 		return fetchProject();
 	});
 </script>
@@ -462,10 +521,10 @@
 					</Table.Row>
 				{/if}
 
-				{#if filteredFolders.length === 0 && filteredItems.length === 0}
+				{#if filteredFolders.length === 0 && filteredDocuments.length === 0 && filteredItems.length === 0}
 					<Table.Row class="hover:[&,&>svelte-css-wrapper]:[&>th,td]:bg-transparent">
 						<Table.Cell colspan={3} class="py-12 text-center text-sm text-muted-foreground">
-							{searchInput ? 'No results found.' : 'No folders or items yet.'}
+							{searchInput ? 'No results found.' : 'No folders, documents or items yet.'}
 						</Table.Cell>
 					</Table.Row>
 				{/if}
@@ -517,10 +576,108 @@
 							<ContextMenu.Item
 								class="text-destructive focus:text-destructive"
 								onclick={async () => {
-									if (await confirm(`Delete folder "${entry.title}"? This cannot be undone.`))
+									if (
+										await confirm(
+											`Delete folder "${entry.title}"? Documents in it move to the project root. This cannot be undone.`
+										)
+									)
 										await deleteFolder(entry.id);
 								}}>Delete</ContextMenu.Item
 							>
+						</ContextMenu.Content>
+					</ContextMenu.Root>
+				{/each}
+
+				<!-- Project documents -->
+				{#each filteredDocuments as doc (doc.id)}
+					{@const Icon = getFileIcon(doc.latestVersion.extension)}
+					{@const VisibilityIcon = getVisibilityIcon(doc.visibility)}
+
+					<ContextMenu.Root>
+						<ContextMenu.Trigger>
+							{#snippet child({ props })}
+								<Table.Row
+									{...props}
+									class="cursor-pointer {props.class ?? ''}"
+									onclick={() => openDocument(doc)}
+								>
+									<Table.Cell class="py-3">
+										<div class="flex min-w-0 items-center gap-3">
+											<Icon size={16} class="shrink-0 text-muted-foreground" />
+											<span class="truncate">{doc.title}</span>
+
+											<span
+												class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+											>
+												{doc.typeName}
+											</span>
+
+											<span class="shrink-0 text-xs text-muted-foreground">
+												v{doc.latestVersion.versionNumber}
+											</span>
+
+											<Tooltip.Root>
+												<Tooltip.Trigger>
+													<VisibilityIcon size={13} class="shrink-0 text-muted-foreground" />
+												</Tooltip.Trigger>
+
+												<Tooltip.Content>
+													<p>{visibilityLabels[doc.visibility]}</p>
+												</Tooltip.Content>
+											</Tooltip.Root>
+
+											{#if isProcessing(doc.latestVersion)}
+												<span
+													class="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground"
+												>
+													<Spinner class="h-3 w-3" />
+													Processing
+												</span>
+											{/if}
+										</div>
+									</Table.Cell>
+
+									<Table.Cell class="text-xs whitespace-nowrap text-muted-foreground">
+										{doc.latestVersion.uploadedByName}
+									</Table.Cell>
+
+									<Table.Cell class="p-3">
+										<div class="flex items-center justify-center">
+											<button
+												class="cursor-pointer"
+												onclick={(e) => {
+													e.stopPropagation();
+													downloadDocument(doc);
+												}}
+											>
+												<Download size={14} />
+											</button>
+										</div>
+									</Table.Cell>
+								</Table.Row>
+							{/snippet}
+						</ContextMenu.Trigger>
+
+						<ContextMenu.Content>
+							<ContextMenu.Item onclick={() => openDocument(doc)}>Open</ContextMenu.Item>
+							<ContextMenu.Item onclick={() => downloadDocument(doc)}>Download</ContextMenu.Item>
+
+							{#if doc.accessLevel === 'Editor'}
+								<ContextMenu.Separator />
+								<ContextMenu.Item
+									class="text-destructive focus:text-destructive"
+									onclick={async () => {
+										if (
+											await confirm(
+												`Delete "${doc.title}" and all its versions? This cannot be undone.`
+											)
+										)
+											await deleteDocument(doc);
+									}}
+								>
+									Delete
+								</ContextMenu.Item>
+							{/if}
 						</ContextMenu.Content>
 					</ContextMenu.Root>
 				{/each}
