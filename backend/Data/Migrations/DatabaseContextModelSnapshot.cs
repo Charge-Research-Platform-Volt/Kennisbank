@@ -642,6 +642,10 @@ namespace KnowledgeBank.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created-on");
 
+                    b.Property<Guid?>("FolderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("folder-id");
+
                     b.Property<string>("GeneralAccessType")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -680,9 +684,11 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProjectId");
+                    b.HasIndex("FolderId");
 
                     b.HasIndex("TypeId");
+
+                    b.HasIndex("ProjectId", "FolderId");
 
                     b.ToTable("project-documents");
                 });
@@ -1718,6 +1724,11 @@ namespace KnowledgeBank.Data.Migrations
 
             modelBuilder.Entity("KnowledgeBank.Models.ProjectDocuments.ProjectDocument", b =>
                 {
+                    b.HasOne("KnowledgeBank.Models.Project", "Folder")
+                        .WithMany()
+                        .HasForeignKey("FolderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("KnowledgeBank.Models.Project", "Project")
                         .WithMany()
                         .HasForeignKey("ProjectId")
@@ -1729,6 +1740,8 @@ namespace KnowledgeBank.Data.Migrations
                         .HasForeignKey("TypeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Folder");
 
                     b.Navigation("Project");
 

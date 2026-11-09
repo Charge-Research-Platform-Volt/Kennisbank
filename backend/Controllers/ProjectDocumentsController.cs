@@ -35,11 +35,11 @@ public class ProjectDocumentsController(
     [HttpGet]
     [SwaggerOperation(Summary = "List the project documents the current user can view")]
     [SwaggerResponse(200, "Document list")]
-    [SwaggerResponse(404, "Not a root project")]
+    [SwaggerResponse(404, "Project not found")]
     public async Task<IActionResult> List(Guid projectId)
     {
-        if (!await IsRootProjectAsync(projectId)) return NotFound();
-        return Ok(await projectDocumentService.ListAsync(projectId, UserId, await IsOwnerAsync()));
+        if (await projectService.ResolveLocationAsync(projectId) is not { } location) return NotFound();
+        return Ok(await projectDocumentService.ListAsync(location.RootId, location.FolderId, UserId, await IsOwnerAsync()));
     }
 
     [HttpGet("{documentId}")]
@@ -59,12 +59,12 @@ public class ProjectDocumentsController(
     [SwaggerResponse(200, "Document created", typeof(Guid))]
     [SwaggerResponse(400, "Invalid input")]
     [SwaggerResponse(403, "Not a project member")]
-    [SwaggerResponse(404, "Not a root project")]
+    [SwaggerResponse(404, "Project not found")]
     public async Task<IActionResult> Create(Guid projectId, [FromBody] ProjectDocumentCreateDto dto)
     {
-        if (!await IsRootProjectAsync(projectId)) return NotFound();
+        if (await projectService.ResolveLocationAsync(projectId) is not { } location) return NotFound();
 
-        if (!await projectDocumentService.IsMemberAsync(projectId, UserId) && !await IsOwnerAsync())
+        if (!await projectDocumentService.IsMemberAsync(location.RootId, UserId) && !await IsOwnerAsync())
             return Problem("Only project members can add documents.", statusCode: 403);
 
         if (ValidateTitle(dto.Title) is string titleError) return Problem(titleError, statusCode: 400);
@@ -72,7 +72,7 @@ public class ProjectDocumentsController(
         if (!await projectDocumentTypeService.ExistsAsync(dto.TypeId)) return Problem("Document type not found.", statusCode: 400);
         if (await ValidateAccessAsync(dto.Visibility, dto.GeneralAccessType, dto.Grants) is string accessError) return Problem(accessError, statusCode: 400);
 
-        var (documentId, versionId) = await projectDocumentService.CreateAsync(projectId, dto, UserId);
+        var (documentId, versionId) = await projectDocumentService.CreateAsync(location.RootId, location.FolderId, dto, UserId);
         QueuePipeline(versionId);
         return Ok(documentId);
     }
@@ -135,6 +135,24 @@ public class ProjectDocumentsController(
         QueuePipeline(versionId.Value);
 
         return Ok(versionId);
+    }
+
+    [HttpPost("{documentId}/move")]
+    [SwaggerOperation(Summary = "Move a document to the project root or one of its folders")]
+    [SwaggerResponse(204, "Moved")]
+    [SwaggerResponse(400, "Destination is not part of this project")]
+    [SwaggerResponse(403, "View-only access")]
+    [SwaggerResponse(404, "Not found or no access")]
+    public async Task<IActionResult> Move(Guid projectId, Guid documentId, [FromBody] ProjectDocumentMoveDto dto)
+    {
+        var (document, level) = await LoadAsync(projectId, documentId);
+        if (EditCheck(document, level) is IActionResult denied) return denied;
+
+        if (await projectService.ResolveLocationAsync(dto.DestinationId) is not { } destination || destination.RootId != document!.ProjectId)
+            return Problem("Destination folder not found in this project.", statusCode: 400);
+
+        await projectDocumentService.MoveAsync(document, destination.FolderId);
+        return NoContent();
     }
 
     [HttpDelete("{documentId}")]
@@ -200,16 +218,15 @@ public class ProjectDocumentsController(
     private async Task<bool> IsOwnerAsync()
         => (await authorizationService.AuthorizeAsync(User, "RequireOwner")).Succeeded;
 
-    // Documents belong to root projects only; folders share their root's documents
-    private async Task<bool> IsRootProjectAsync(Guid projectId)
-        => await projectService.ExistsAsync(p => p.Id == projectId && p.ProjectType == "root");
-
     private async Task<(ProjectDocument? Document, ProjectDocumentAccessType? Level)> LoadAsync(Guid projectId, Guid documentId)
     {
-        ProjectDocument? document = await projectDocumentService.GetAsync(projectId, documentId);
+        // Any project in the tree finds the document, so links keep working after it moves between folders
+        if (await projectService.ResolveLocationAsync(projectId) is not { } location) return (null, null);
+
+        ProjectDocument? document = await projectDocumentService.GetAsync(location.RootId, documentId);
         if (document == null) return (null, null);
 
-        bool isMember = await projectDocumentService.IsMemberAsync(projectId, UserId);
+        bool isMember = await projectDocumentService.IsMemberAsync(location.RootId, UserId);
         return (document, ProjectDocumentService.GetAccessLevel(document, UserId, isMember, await IsOwnerAsync()));
     }
 

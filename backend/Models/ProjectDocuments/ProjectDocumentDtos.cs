@@ -73,6 +73,7 @@ public class ProjectDocumentListItemDto
     public string Title { get; set; } = string.Empty;
     public Guid TypeId { get; set; }
     public string TypeName { get; set; } = string.Empty;
+    public Guid? FolderId { get; set; }
     public ProjectDocumentVisibility Visibility { get; set; }
     public ProjectDocumentAccessType GeneralAccessType { get; set; }
     public Guid CreatedBy { get; set; }
@@ -88,4 +89,10 @@ public class ProjectDocumentDetailDto : ProjectDocumentListItemDto
 {
     public List<ProjectDocumentVersionDto> Versions { get; set; } = [];
     public List<ProjectDocumentGrantInfoDto> Grants { get; set; } = [];
+}
+
+public class ProjectDocumentMoveDto
+{
+    // The root project or one of its folders
+    public required Guid DestinationId { get; set; }
 }

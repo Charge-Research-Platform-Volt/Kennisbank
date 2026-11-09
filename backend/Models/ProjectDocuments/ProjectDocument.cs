@@ -33,9 +33,13 @@ public class ProjectDocument
     [Key]
     public required Guid Id { get; set; }
 
-    // Always the root project, documents are not attached to folders
+    // Always the root project: access, chat search and the delete cascade all work per root
     [Column("project-id")]
     public required Guid ProjectId { get; set; }
+
+    // Where it sits in the root's folder tree; null is the root itself
+    [Column("folder-id")]
+    public Guid? FolderId { get; set; }
 
     [Column("title")]
     [MaxLength(300)]
@@ -69,6 +73,7 @@ public class ProjectDocument
 
 
     [JsonIgnore] public Project? Project { get; set; }
+    [JsonIgnore] public Project? Folder { get; set; }
     [JsonIgnore] public ProjectDocumentType? Type { get; set; }
     [JsonIgnore] public ICollection<ProjectDocumentVersion>? Versions { get; set; }
     [JsonIgnore] public ICollection<ProjectDocumentAccess>? Access { get; set; }

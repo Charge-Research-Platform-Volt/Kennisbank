@@ -74,7 +74,7 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
             .Include(d => d.Type)
             .FirstOrDefaultAsync(d => d.Id == documentId && d.ProjectId == rootProjectId);
 
-    public async Task<List<ProjectDocumentListItemDto>> ListAsync(Guid rootProjectId, string userId, bool isOwner)
+    public async Task<List<ProjectDocumentListItemDto>> ListAsync(Guid rootProjectId, Guid? folderId, string userId, bool isOwner)
     {
         bool isMember = await IsMemberAsync(rootProjectId, userId);
         List<ProjectDocument> documents = await db.ProjectDocuments
@@ -82,7 +82,7 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
             .Include(d => d.Access)
             .Include(d => d.Versions)
             .Include(d => d.Type)
-            .Where(d => d.ProjectId == rootProjectId)
+            .Where(d => d.ProjectId == rootProjectId && d.FolderId == folderId)
             .OrderByDescending(d => d.UpdatedOn)
             .ToListAsync();
 
@@ -155,7 +155,7 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
 
     #region Commands
 
-    public async Task<(Guid DocumentId, Guid versionId)> CreateAsync(Guid rootProjectId, ProjectDocumentCreateDto dto, string userId)
+    public async Task<(Guid DocumentId, Guid VersionId)> CreateAsync(Guid rootProjectId, Guid? folderId, ProjectDocumentCreateDto dto, string userId)
     {
         Guid documentId = Guid.NewGuid();
         // The upload already sits at project-docs/{objectName}, so it becomes the first version as is
@@ -166,6 +166,7 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
         {
             Id = documentId,
             ProjectId = rootProjectId,
+            FolderId = folderId,
             Title = dto.Title.Trim(),
             TypeId = dto.TypeId,
             Visibility = dto.Visibility,
@@ -238,6 +239,13 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
         }));
 
         document.UpdatedOn = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+    }
+
+    // Doesn't touch UpdatedOn: moving isn't a change to the document itself, same as in Drive
+    public async Task MoveAsync(ProjectDocument document, Guid? folderId)
+    {
+        document.FolderId = folderId;
         await db.SaveChangesAsync();
     }
 
@@ -343,6 +351,7 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
         dto.Title = document.Title;
         dto.TypeId = document.TypeId;
         dto.TypeName = document.Type?.Name ?? string.Empty;
+        dto.FolderId = document.FolderId;
         dto.Visibility = document.Visibility;
         dto.GeneralAccessType = document.GeneralAccessType;
         dto.CreatedBy = Guid.Parse(document.CreatedBy);

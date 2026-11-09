@@ -6,6 +6,8 @@ using System.Linq.Expressions;
 
 namespace KnowledgeBank.Services.Domain;
 
+public readonly record struct ProjectLocation(Guid RootId, Guid? FolderId);
+
 public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxonomySearchIndexService, ProjectDocumentChunkSearchIndexService projectDocumentChunkSearchIndexService)
 {
     public const string TypeTag = "project";
@@ -213,6 +215,21 @@ public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxon
     {
         List<ProjectAncestor> ancestors = await GetAncestorsAsync(id);
         return ancestors.Count > 0 ? ancestors[0].Id : id;
+    }
+
+    /// <summary>
+    /// Where an ID points in a project tree: a root project is its own root with no folder, a folder belongs to its root.
+    /// Null when no such project exists
+    /// </summary>
+    public async Task<ProjectLocation?> ResolveLocationAsync(Guid id)
+    {
+        string? type = await db.Projects.Where(p => p.Id == id).Select(p => p.ProjectType).FirstOrDefaultAsync();
+        return type switch
+        {
+            "root" => new ProjectLocation(id, null),
+            "folder" => new ProjectLocation(await GetRootIdAsync(id), id),
+            _ => null
+        };
     }
 
     public async Task<List<ProjectFolderDto>> GetAllFoldersAsync(Guid rootId)

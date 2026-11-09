@@ -75,16 +75,117 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
     }
 
     [Fact]
-    public async Task Create_NeedsProjectMembership_AndARootProject()
+    public async Task Create_NeedsMembershipOfTheRootProject_AlsoInAFolder()
     {
         var (creator, _) = await fixture.LoginAsNewUserAsync();
         var (outsider, _) = await fixture.LoginAsNewUserAsync();
         Guid projectId = await creator.CreateProjectAsync();
-        HttpResponseMessage folder = await creator.PostAsJsonAsync($"/projects/{projectId}/folders", new { name = "Folder" });
-        Guid folderId = (await folder.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("folderId").GetGuid();
+        Guid folderId = await creator.CreateFolderAsync(projectId);
 
         Assert.Equal(HttpStatusCode.Forbidden, (await PostCreateAsync(outsider, projectId, await outsider.UploadProjectDocumentFileAsync())).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await PostCreateAsync(creator, folderId, await creator.UploadProjectDocumentFileAsync())).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await PostCreateAsync(outsider, folderId, await outsider.UploadProjectDocumentFileAsync())).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await PostCreateAsync(creator, Guid.NewGuid(), await creator.UploadProjectDocumentFileAsync())).StatusCode);
+    }
+
+    // Folders
+
+    [Fact]
+    public async Task Documents_LandInTheFolderTheyAreUploadedTo_AndListPerFolder()
+    {
+        var (creator, _) = await fixture.LoginAsNewUserAsync();
+        Guid projectId = await creator.CreateProjectAsync();
+        Guid folderId = await creator.CreateFolderAsync(projectId);
+        Guid subfolderId = await creator.CreateFolderAsync(folderId);
+
+        Guid inRoot = await creator.CreateProjectDocumentAsync(projectId);
+        Guid inFolder = await creator.CreateProjectDocumentAsync(folderId);
+        Guid inSubfolder = await creator.CreateProjectDocumentAsync(subfolderId);
+
+        Assert.Equivalent(new[] { inRoot }, await ListIdsAsync(creator, projectId));
+        Assert.Equivalent(new[] { inFolder }, await ListIdsAsync(creator, folderId));
+        Assert.Equivalent(new[] { inSubfolder }, await ListIdsAsync(creator, subfolderId));
+
+        // Documents still belong to the root, wherever they sit
+        using IServiceScope scope = fixture.Services.CreateScope();
+        var stored = await scope.ServiceProvider.GetRequiredService<DatabaseContext>().ProjectDocuments
+            .Where(d => d.Id == inRoot || d.Id == inFolder || d.Id == inSubfolder)
+            .ToDictionaryAsync(d => d.Id);
+        Assert.All(stored.Values, d => Assert.Equal(projectId, d.ProjectId));
+        Assert.Null(stored[inRoot].FolderId);
+        Assert.Equal(subfolderId, stored[inSubfolder].FolderId);
+        Assert.Equal(subfolderId, (await GetDetailAsync(creator, projectId, inSubfolder)).GetProperty("folderId").GetGuid());
+    }
+
+    [Fact]
+    public async Task FolderAccess_UsesRootMembership_AndDocumentRoutesWorkThroughAnyFolder()
+    {
+        var (creator, _) = await fixture.LoginAsNewUserAsync();
+        var (member, memberId) = await fixture.LoginAsNewUserAsync();
+        var (outsider, _) = await fixture.LoginAsNewUserAsync();
+        Guid projectId = await creator.CreateProjectAsync(memberId);
+        Guid folderId = await creator.CreateFolderAsync(projectId);
+        Guid otherFolderId = await creator.CreateFolderAsync(projectId);
+        Guid documentId = await creator.CreateProjectDocumentAsync(folderId, "ProjectMembers", "Viewer");
+
+        Assert.Equivalent(new[] { documentId }, await ListIdsAsync(member, folderId));
+        Assert.Empty(await ListIdsAsync(outsider, folderId));
+
+        // The route's project only has to be in the same tree, so links survive moves between folders
+        foreach (Guid via in new[] { projectId, folderId, otherFolderId })
+            Assert.Equal(documentId, (await GetDetailAsync(member, via, documentId)).GetProperty("id").GetGuid());
+
+        Assert.Equal(HttpStatusCode.NotFound, (await outsider.GetAsync($"/projects/{folderId}/documents/{documentId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await RenameAsync(member, folderId, documentId)).StatusCode);
+
+        // Another project's id never finds it
+        Guid otherProjectId = await creator.CreateProjectAsync(memberId);
+        Assert.Equal(HttpStatusCode.NotFound, (await member.GetAsync($"/projects/{otherProjectId}/documents/{documentId}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Move_PutsADocumentInAnotherFolderOrTheRoot_WithinTheSameProjectOnly()
+    {
+        var (creator, _) = await fixture.LoginAsNewUserAsync();
+        var (viewer, viewerId) = await fixture.LoginAsNewUserAsync();
+        Guid projectId = await creator.CreateProjectAsync(viewerId);
+        Guid folderId = await creator.CreateFolderAsync(projectId);
+        Guid documentId = await creator.CreateProjectDocumentAsync(projectId, "ProjectMembers", "Viewer");
+        DateTime updatedBefore = (await GetDetailAsync(creator, projectId, documentId)).GetProperty("updatedOn").GetDateTime();
+
+        await Api.EnsureAsync(await MoveAsync(creator, projectId, documentId, folderId), HttpStatusCode.NoContent);
+        Assert.Empty(await ListIdsAsync(creator, projectId));
+        Assert.Equivalent(new[] { documentId }, await ListIdsAsync(creator, folderId));
+        Assert.Equal(updatedBefore, (await GetDetailAsync(creator, folderId, documentId)).GetProperty("updatedOn").GetDateTime());
+
+        await Api.EnsureAsync(await MoveAsync(creator, folderId, documentId, projectId), HttpStatusCode.NoContent);
+        Assert.Equivalent(new[] { documentId }, await ListIdsAsync(creator, projectId));
+
+        Guid otherProjectId = await creator.CreateProjectAsync();
+        Guid otherFolderId = await creator.CreateFolderAsync(otherProjectId);
+        foreach (Guid destination in new[] { otherProjectId, otherFolderId, Guid.NewGuid() })
+            Assert.Equal(HttpStatusCode.BadRequest, (await MoveAsync(creator, projectId, documentId, destination)).StatusCode);
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await MoveAsync(viewer, projectId, documentId, folderId)).StatusCode);
+        Assert.Equivalent(new[] { documentId }, await ListIdsAsync(creator, projectId));
+    }
+
+    [Fact]
+    public async Task DeletingAFolder_MovesItsDocumentsToTheRoot_EvenOnesTheDeleterCantSee()
+    {
+        var (creator, _) = await fixture.LoginAsNewUserAsync();
+        var (member, memberId) = await fixture.LoginAsNewUserAsync();
+        Guid projectId = await creator.CreateProjectAsync(memberId);
+        Guid folderId = await creator.CreateFolderAsync(projectId);
+        Guid subfolderId = await creator.CreateFolderAsync(folderId);
+        Guid visible = await creator.CreateProjectDocumentAsync(folderId);
+        Guid hidden = await creator.CreateProjectDocumentAsync(subfolderId, "Restricted");
+
+        // The member can't see the restricted document, but deleting the folders must not destroy it
+        await Api.EnsureAsync(await member.DeleteAsync($"/projects/{folderId}"), HttpStatusCode.NoContent);
+
+        Assert.Equivalent(new[] { visible, hidden }, await ListIdsAsync(creator, projectId));
+        Assert.Equivalent(new[] { visible }, await ListIdsAsync(member, projectId));
+        Assert.Equal(HttpStatusCode.NotFound, (await creator.GetAsync($"/projects/{folderId}/documents")).StatusCode);
     }
 
     // Access
@@ -440,6 +541,9 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
             visibility = "ProjectMembers",
             generalAccessType = "Editor"
         });
+
+    private static Task<HttpResponseMessage> MoveAsync(HttpClient client, Guid projectId, Guid documentId, Guid destinationId)
+        => client.PostAsJsonAsync($"/projects/{projectId}/documents/{documentId}/move", new { destinationId });
 
     private static Task<HttpResponseMessage> RenameAsync(HttpClient client, Guid projectId, Guid documentId)
         => client.PatchAsJsonAsync($"/projects/{projectId}/documents/{documentId}", new { title = Api.Unique("Renamed") });

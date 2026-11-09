@@ -46,6 +46,13 @@ public static class Api
         return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("projectId").GetGuid();
     }
 
+    public static async Task<Guid> CreateFolderAsync(this HttpClient client, Guid parentId, string? name = null)
+    {
+        HttpResponseMessage response = await client.PostAsJsonAsync($"/projects/{parentId}/folders", new { name = name ?? Unique("Folder") });
+        await EnsureAsync(response, HttpStatusCode.Created);
+        return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("folderId").GetGuid();
+    }
+
     /// <summary>Runs the chunked upload the frontend uses (init, one part, finalize) and returns the object name.</summary>
     public static async Task<string> UploadFileAsync(this HttpClient client, string fileName, byte[] content, string purpose = "Library")
     {

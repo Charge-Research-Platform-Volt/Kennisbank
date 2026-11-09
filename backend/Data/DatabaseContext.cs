@@ -280,7 +280,15 @@ namespace KnowledgeBank.Data
                     .HasForeignKey(d => d.ProjectId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasIndex(d => d.ProjectId);
+                // Deleting a folder never deletes documents: they move to the project root, like Drive does
+                // with content you can't access. Database-level, since folders are deleted with ExecuteDeleteAsync
+                entity.HasOne(d => d.Folder)
+                    .WithMany()
+                    .HasForeignKey(d => d.FolderId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                // Lists are always per root and location; queries on only ProjectId use it too
+                entity.HasIndex(d => new { d.ProjectId, d.FolderId });
             });
 
             modelBuilder.Entity<ProjectDocumentVersion>(entity =>
