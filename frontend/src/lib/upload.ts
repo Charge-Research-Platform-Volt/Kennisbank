@@ -2,7 +2,11 @@ import { api } from './api';
 
 export type UploadPurpose = 'Library' | 'ProjectDocument';
 
-export async function uploadFile(file: File, purpose: UploadPurpose = 'Library'): Promise<string> {
+export async function uploadFile(
+	file: File,
+	purpose: UploadPurpose = 'Library',
+	onProgress?: (fraction: number) => void
+): Promise<string> {
 	const CHUNK_SIZE = 5242880; // 5 MB
 
 	// Init
@@ -16,6 +20,7 @@ export async function uploadFile(file: File, purpose: UploadPurpose = 'Library')
 	// Upload chunks
 	const partETags: Record<number, string> = {};
 	let part = 1;
+	onProgress?.(0);
 
 	for (let offset = 0; offset < file.size; offset += CHUNK_SIZE) {
 		const chunk = file.slice(offset, offset + CHUNK_SIZE);
@@ -26,6 +31,7 @@ export async function uploadFile(file: File, purpose: UploadPurpose = 'Library')
 
 		partETags[part] = result.eTag;
 		part++;
+		onProgress?.(Math.min(offset + CHUNK_SIZE, file.size) / file.size);
 	}
 
 	// Finalize
