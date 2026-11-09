@@ -13,6 +13,14 @@ import type {
 // single-document calls only need it to find the project
 const base = (projectId: string) => `/api/projects/${projectId}/documents`;
 
+/** What the backend accepts; the upload is refused for anything else */
+export const supportedExtensions = ['pdf', 'docx'];
+
+export function isSupportedFile(fileName: string): boolean {
+	const dot = fileName.lastIndexOf('.');
+	return dot > 0 && supportedExtensions.includes(fileName.slice(dot + 1).toLowerCase());
+}
+
 export const projectDocuments = {
 	list: (projectId: string) => api.get<ProjectDocument[]>(base(projectId)),
 	get: (projectId: string, documentId: string) =>
