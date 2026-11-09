@@ -38,7 +38,7 @@ export function createInspectorState() {
 
 	function openInspector(item: ResourceItem) {
 		selectedItem = item;
-		setParams({ inspectorId: item.id, inspectorTye: item.type });
+		setParams({ inspectorId: item.id, inspectorType: item.type });
 	}
 
 	function closeInspector() {
