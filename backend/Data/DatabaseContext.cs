@@ -343,7 +343,9 @@ namespace KnowledgeBank.Data
                 new ProjectDocumentType { Id = Guid.Parse("8c4f36d0-0c30-48c6-a073-816a7bfa87d0"), Name = "Project plan", CreatedOn = seededOn },
                 new ProjectDocumentType { Id = Guid.Parse("7e1fbccd-5af9-4270-8133-0191eae9203d"), Name = "Draft research report", CreatedOn = seededOn },
                 new ProjectDocumentType { Id = Guid.Parse("9b3eeb99-8bb2-4d92-9b54-aa27f6e20657"), Name = "Minutes", CreatedOn = seededOn },
-                new ProjectDocumentType { Id = Guid.Parse("ea01f3cd-4cbe-43cf-bd39-3bb5ba5f26f8"), Name = "Evaluation", CreatedOn = seededOn }
+                new ProjectDocumentType { Id = Guid.Parse("ea01f3cd-4cbe-43cf-bd39-3bb5ba5f26f8"), Name = "Evaluation", CreatedOn = seededOn },
+                // Added later (AddOtherProjectDocumentType), so a document that fits none of the above isn't misfiled
+                new ProjectDocumentType { Id = Guid.Parse("61d50652-f25f-4cf6-9263-529b501d4086"), Name = "Other", CreatedOn = new(2026, 11, 18, 0, 0, 0, DateTimeKind.Utc) }
             );
 
             // Trash view

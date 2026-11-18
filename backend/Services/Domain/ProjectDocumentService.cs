@@ -13,7 +13,7 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
 {
     // Keeps these files out of reach of /files/{id}, which serves any GUID key without access checks
     public const string StoragePrefix = "project-docs/";
-    public static readonly string[] SupportedExtensions = ["pdf", "docx"];
+    public static readonly string[] SupportedExtensions = ["pdf", "docx", "odt"];
 
     private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
     private readonly Serilog.ILogger logger = Serilog.Log.ForContext<ProjectDocumentService>();

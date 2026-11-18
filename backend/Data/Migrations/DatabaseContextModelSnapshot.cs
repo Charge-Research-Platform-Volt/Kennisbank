@@ -807,6 +807,12 @@ namespace KnowledgeBank.Data.Migrations
                             Id = new Guid("ea01f3cd-4cbe-43cf-bd39-3bb5ba5f26f8"),
                             CreatedOn = new DateTime(2026, 10, 29, 0, 0, 0, 0, DateTimeKind.Utc),
                             Name = "Evaluation"
+                        },
+                        new
+                        {
+                            Id = new Guid("61d50652-f25f-4cf6-9263-529b501d4086"),
+                            CreatedOn = new DateTime(2026, 11, 18, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Name = "Other"
                         });
                 });
 

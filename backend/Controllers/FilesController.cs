@@ -35,7 +35,7 @@ public class FilesController(IStorageService storageService, ResourceService res
             return Problem($"File type '{extension}' not supported.", statusCode: 400);
 
         if (dto.Purpose == UploadPurpose.ProjectDocument && !ProjectDocumentService.SupportedExtensions.Contains(Filetype.TrimExtension(extension).ToLowerInvariant()))
-            return Problem("Project documents must be PDF or Word (.docx).", statusCode: 400);
+            return Problem("Project documents must be PDF, Word (.docx) or OpenDocument text (.odt).", statusCode: 400);
 
         string objectName = Guid.NewGuid().ToString();
 

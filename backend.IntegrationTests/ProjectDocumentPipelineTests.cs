@@ -11,6 +11,7 @@ using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Domain;
 using KnowledgeBank.Services.Search;
 using KnowledgeBank.Services.Vector;
+using KnowledgeBank.Tests.Helpers;
 using KnowledgeBank.Utils;
 using Meilisearch;
 using Meilisearch.QueryParameters;
@@ -173,6 +174,29 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
 
         HttpResponseMessage preview = await creator.GetAsync($"/project-documents/{documentId}/versions/{version.Id}/preview");
         await Api.EnsureAsync(preview, HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task OpenDocumentText_GetsAPreview_AndSearchableChunks()
+    {
+        var (creator, _) = await fixture.LoginAsNewUserAsync();
+        Guid projectId = await creator.CreateProjectAsync();
+        string marker = Api.Unique("Written in LibreOffice");
+        byte[] odt = TestDocuments.Odt($"<text:h>Plan</text:h><text:p>{marker}</text:p>");
+
+        Guid documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.odt", content: odt);
+        ProjectDocumentVersion version = await WaitForPipelineAsync(await LatestVersionIdAsync(documentId));
+
+        Assert.Equal("odt", version.Extension);
+        Assert.Equal(EmbeddingStatus.Completed, version.PreviewStatus);
+        Assert.Equal(EmbeddingStatus.Completed, version.EmbeddingStatus);
+        Assert.Contains(marker, version.ExtractedText);
+        Assert.Contains(await ChunksAsync(documentId), c => c.ChunkText.Contains(marker));
+        Assert.Equal(FakeAiServer.ConvertedPdf, await creator.GetByteArrayAsync($"/project-documents/{documentId}/versions/{version.Id}/preview"));
+
+        HttpResponseMessage download = await creator.GetAsync($"/project-documents/{documentId}/versions/{version.Id}/download");
+        await Api.EnsureAsync(download, HttpStatusCode.OK);
+        Assert.Equal("application/vnd.oasis.opendocument.text", download.Content.Headers.ContentType?.MediaType);
     }
 
     [Fact]

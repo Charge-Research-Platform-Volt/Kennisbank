@@ -19,7 +19,7 @@ type NewDocument = UploadedFile & ProjectDocumentAccess & { title: string; typeI
 type DocumentChanges = { title?: string; typeId?: string };
 
 /** What the backend accepts; the upload is refused for anything else */
-export const supportedExtensions = ['pdf', 'docx'];
+export const supportedExtensions = ['pdf', 'docx', 'odt'];
 
 export function isSupportedFile(fileName: string): boolean {
 	const dot = fileName.lastIndexOf('.');

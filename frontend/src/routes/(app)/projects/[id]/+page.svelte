@@ -19,7 +19,8 @@
 		Pencil,
 		CirclePlus,
 		MessageSquare,
-		Upload
+		Upload,
+		FilePenLine
 	} from '@lucide/svelte';
 	import type { ResourceItem } from '#lib/types/resource.js';
 	import * as Breadcrumb from '#lib/components/ui/breadcrumb/index.js';
@@ -70,7 +71,9 @@
 
 	function openUpload(file: File | null = null, versionOf: ProjectDocument | null = null) {
 		if (file && !isSupportedFile(file.name)) {
-			toast.error('Only PDF and Word (.docx) files can be added as project documents.');
+			toast.error(
+				'Only PDF, Word (.docx) and OpenDocument text (.odt) files can be added as project documents.'
+			);
 			return;
 		}
 
@@ -115,7 +118,7 @@
 	}
 
 	function openDocument(doc: ProjectDocument) {
-		goto(`/projects/${page.params.id}/documents/${doc.id}`);
+		goto(`/projects/${doc.projectId}/documents/${doc.id}`);
 	}
 
 	// The response is an attachment, so the browser downloads it without leaving the page
@@ -656,7 +659,6 @@
 
 					<!-- Project documents -->
 					{#each filteredDocuments as doc (doc.id)}
-						{@const Icon = getFileIcon(doc.latestVersion.extension)}
 						{@const VisibilityIcon = getVisibilityIcon(doc.visibility)}
 
 						<ContextMenu.Root>
@@ -669,7 +671,8 @@
 									>
 										<Table.Cell class="py-3">
 											<div class="flex min-w-0 items-center gap-3">
-												<Icon size={16} class="shrink-0 text-muted-foreground" />
+												<!-- A working document, not a library item (those use FileText) -->
+												<FilePenLine size={16} class="shrink-0 text-muted-foreground" />
 												<span class="truncate">{doc.title}</span>
 
 												<span

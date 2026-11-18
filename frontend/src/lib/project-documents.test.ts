@@ -5,6 +5,7 @@ import {
 	formatFileSize,
 	getVisibilityIcon,
 	isProcessing,
+	isSupportedFile,
 	previewUrl,
 	titleFromFileName
 } from './project-documents';
@@ -45,6 +46,20 @@ describe('isProcessing', () => {
 			expect(isProcessing(version(preview, embedding))).toBe(expected);
 		}
 	);
+});
+
+describe('isSupportedFile', () => {
+	it.each([
+		['report.pdf', true],
+		['Minutes.DOCX', true], // the extension is case-insensitive
+		['plan.odt', true], // LibreOffice's own format
+		['old.doc', false], // the pre-2007 Word format isn't supported
+		['sheet.ods', false],
+		['no-extension', false],
+		['.pdf', false] // a dotfile, not a PDF
+	])('%j → %s', (fileName, expected) => {
+		expect(isSupportedFile(fileName)).toBe(expected);
+	});
 });
 
 describe('titleFromFileName', () => {

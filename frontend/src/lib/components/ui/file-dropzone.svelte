@@ -40,11 +40,11 @@
 	aria-disabled={disabled}
 	onclick={browse}
 	onkeydown={(e) => e.key === 'Enter' && browse()}
-    ondragenter={(e) => {
-        // Firefox only treats an element as drop target when dragenter is cancelled too
-        e.preventDefault();
-        if (!disabled) isDragging = true;
-    }}
+	ondragenter={(e) => {
+		// Firefox only treats an element as drop target when dragenter is cancelled too
+		e.preventDefault();
+		if (!disabled) isDragging = true;
+	}}
 	ondragover={(e) => {
 		e.preventDefault();
 		if (!disabled) isDragging = true;

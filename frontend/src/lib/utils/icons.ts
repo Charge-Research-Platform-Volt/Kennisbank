@@ -7,6 +7,7 @@ export function getFileIcon(fileType: string) {
 		case 'pdf':
 		case 'doc':
 		case 'docx':
+		case 'odt':
 		case 'pptx':
 		case 'xlsx':
 		case 'txt':
@@ -41,6 +42,7 @@ export function getFileAction(fileType: string): 'open' | 'download' | null {
 		case 'pdf':
 		case 'doc':
 		case 'docx':
+		case 'odt':
 		case 'pptx':
 		case 'xlsx':
 		case 'txt':

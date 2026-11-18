@@ -247,7 +247,7 @@ public class ProjectDocumentsController(
         string extension = Filetype.TrimExtension(Path.GetExtension(fileName)).ToLowerInvariant();
         
         if (!ProjectDocumentService.SupportedExtensions.Contains(extension))
-            return "Project documents must be PDF or Word (.docx).";
+            return "Project documents must be PDF, Word (.docx) or OpenDocument text (.odt).";
 
         if (!Guid.TryParse(objectname, out Guid objectId) || !await projectDocumentService.IsUploadAvailableAsync(objectId))
             return "Upload not found. Please upload the file again";
