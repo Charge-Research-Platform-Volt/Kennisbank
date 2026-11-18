@@ -300,12 +300,16 @@
 		editSubmitting = true;
 
 		try {
-			await api.patch(`/api/projects/${projectInfo!.rootProject.id}`, {
+			const rootId = projectInfo!.rootProject.id;
+
+			// Three endpoints: the main PATCH only takes title and description. An empty description is sent as
+			// "" rather than null, since null means "leave unchanged" and the description couldn't be cleared
+			await api.patch(`/api/projects/${rootId}`, {
 				title: editTitle.trim(),
-				description: editDescription.trim() || null,
-				tags: editTags,
-				members: editMembers
+				description: editDescription.trim()
 			});
+			await api.patch(`/api/projects/${rootId}/tags`, editTags);
+			await api.patch(`/api/projects/${rootId}/members`, editMembers);
 
 			editOpen = false;
 			toast.success('Project updated.');

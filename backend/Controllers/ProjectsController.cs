@@ -106,7 +106,8 @@ public class ProjectsController(ProjectService projectService, TagService tagSer
         await projectService.UpdateAsync(id, p =>
         {
             if (dto.Title != null) p.Title = dto.Title.Trim();
-            if (dto.Description != null) p.Description = dto.Description;
+            // null leaves it unchanged; an empty description clears it
+            if (dto.Description != null) p.Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim();
         });
 
         return NoContent();
