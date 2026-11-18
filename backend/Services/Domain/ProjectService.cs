@@ -230,24 +230,27 @@ public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxon
 
     public async Task<List<ProjectFolderDto>> GetAllFoldersAsync(Guid rootId)
     {
+        // Depth-first in tree order: every folder comes directly before its own subfolders, so the frontend can
+        // show the tree by indenting on Depth alone
         var result = new List<ProjectFolderDto>();
-        var stack = new Stack<(Guid Id, int Depth)>();
-        stack.Push((rootId, 0));
+        var stack = new Stack<(Guid Id, string Title, int Depth)>();
+        stack.Push((rootId, string.Empty, 0));
 
         while (stack.Count > 0)
         {
-            var (currentId, depth) = stack.Pop();
+            var (currentId, title, depth) = stack.Pop();
+            if (depth > 0) result.Add(new ProjectFolderDto { Id = currentId, Title = title, Depth = depth });
+
             var children = await db.ProjectFolderRelations
                 .AsNoTracking()
                 .Where(r => r.ParentId == currentId)
                 .Join(db.Projects, r => r.ChildId, p => p.Id, (r, p) => new { p.Id, p.Title })
+                // Descending onto a stack: the first folder alphabetically comes off first
+                .OrderByDescending(c => c.Title)
                 .ToListAsync();
 
             foreach (var child in children)
-            {
-                result.Add(new ProjectFolderDto { Id = child.Id, Title = child.Title, Depth = depth + 1 });
-                stack.Push((child.Id, depth + 1));
-            }
+                stack.Push((child.Id, child.Title, depth + 1));
         }
 
         return result;

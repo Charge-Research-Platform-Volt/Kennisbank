@@ -56,6 +56,9 @@
 	import LastModified from '#lib/components/ui/last-modified.svelte';
 	import UploadDocumentDialog from '#lib/components/project-documents/upload-document-dialog.svelte';
 	import { isSupportedFile } from '#lib/project-documents.js';
+	import ShareDocumentDialog from '#lib/components/project-documents/share-document-dialog.svelte';
+	import MoveDocumentDialog from '#lib/components/project-documents/move-document-dialog.svelte';
+	import EditDocumentDialog from '#lib/components/project-documents/edit-document-dialog.svelte';
 
 	const openInspector: (item: ResourceItem) => void = getContext('openInspector');
 	const registerRefresh: (fn: () => void) => void = getContext('registerRefresh');
@@ -79,7 +82,11 @@
 	let projectInfo = $state<ProjectInfo | null>(null);
 	let loading = $state(false);
 
+	let actionDocument = $state<ProjectDocument | null>(null);
 	let uploadOpen = $state(false);
+	let shareOpen = $state(false);
+	let moveOpen = $state(false);
+	let editDocumentOpen = $state(false);
 	let droppedFile = $state<File | null>(null);
 	let draggingFile = $state(false);
 	let uploadVersionOf = $state<ProjectDocument | null>(null);
@@ -703,10 +710,6 @@
 													{doc.typeName}
 												</span>
 
-												<span class="shrink-0 text-xs text-muted-foreground">
-													v{doc.latestVersion.versionNumber}
-												</span>
-
 												<Tooltip.Root>
 													<Tooltip.Trigger>
 														<VisibilityIcon size={13} class="shrink-0 text-muted-foreground" />
@@ -763,9 +766,37 @@
 								>
 
 								{#if doc.accessLevel === 'Editor'}
-									<ContextMenu.Item class="cursor-pointer" onclick={() => openUpload(null, doc)}
-										>Upload new version</ContextMenu.Item
+									<ContextMenu.Separator />
+									<ContextMenu.Item
+										class="cursor-pointer"
+										onclick={() => {
+											actionDocument = doc;
+											shareOpen = true;
+										}}
 									>
+										Share
+									</ContextMenu.Item>
+									<ContextMenu.Item
+										class="cursor-pointer"
+										onclick={() => {
+											actionDocument = doc;
+											editDocumentOpen = true;
+										}}
+									>
+										Edit details
+									</ContextMenu.Item>
+									<ContextMenu.Item
+										class="cursor-pointer"
+										onclick={() => {
+											actionDocument = doc;
+											moveOpen = true;
+										}}
+									>
+										Move
+									</ContextMenu.Item>
+									<ContextMenu.Item class="cursor-pointer" onclick={() => openUpload(null, doc)}>
+										Upload new version
+									</ContextMenu.Item>
 									<ContextMenu.Separator />
 									<ContextMenu.Item
 										class="cursor-pointer text-destructive focus:text-destructive"
@@ -982,3 +1013,16 @@
 	initialFile={droppedFile}
 	onuploaded={() => fetchDocuments()}
 />
+{#if actionDocument}
+	<ShareDocumentDialog
+		bind:open={shareOpen}
+		documentId={actionDocument.id}
+		onsaved={fetchDocuments}
+	/>
+	<MoveDocumentDialog bind:open={moveOpen} document={actionDocument} onmoved={fetchDocuments} />
+	<EditDocumentDialog
+		bind:open={editDocumentOpen}
+		document={actionDocument}
+		onsaved={fetchDocuments}
+	/>
+{/if}

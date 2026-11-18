@@ -9,7 +9,10 @@
 		Ellipsis,
 		MessageSquare,
 		PanelRight,
-		Upload
+		Upload,
+		UserPlus,
+		FolderInput,
+		Pencil
 	} from '@lucide/svelte';
 	import { api } from '#lib/api.js';
 	import { confirm } from '#lib/state/confirm.svelte.js';
@@ -30,6 +33,9 @@
 	} from '#lib/project-documents.js';
 	import type { ProjectInfo } from '#lib/types/project.js';
 	import type { ProjectDocumentDetail } from '#lib/types/project-document.js';
+	import ShareDocumentDialog from '#lib/components/project-documents/share-document-dialog.svelte';
+	import MoveDocumentDialog from '#lib/components/project-documents/move-document-dialog.svelte';
+	import EditDocumentDialog from '#lib/components/project-documents/edit-document-dialog.svelte';
 
 	const toggleChat: () => void = getContext('toggleChat');
 
@@ -40,6 +46,9 @@
 	let selectedVersionId = $state<string | null>(null);
 	let showDetails = $state(true);
 	let uploadOpen = $state(false);
+	let shareOpen = $state(false);
+	let moveOpen = $state(false);
+	let editOpen = $state(false);
 
 	const selectedVersion = $derived(
 		detail?.versions.find((v) => v.id === selectedVersionId) ?? detail?.latestVersion ?? null
@@ -185,6 +194,13 @@
 			<span class="shrink-0 text-xs text-muted-foreground">v{selectedVersion.versionNumber}</span>
 
 			<div class="ml-auto flex shrink-0 items-center gap-2">
+				{#if canEdit}
+					<Button variant="outline" class="cursor-pointer" onclick={() => (shareOpen = true)}>
+						<UserPlus size={16} />
+						Share
+					</Button>
+				{/if}
+
 				<Button variant="outline" class="cursor-pointer" onclick={download}>
 					<Download size={16} />
 					Download
@@ -215,6 +231,16 @@
 						</DropdownMenu.Trigger>
 
 						<DropdownMenu.Content align="end">
+							<DropdownMenu.Item class="cursor-pointer" onclick={() => (editOpen = true)}>
+								<Pencil size={14} />
+								Edit details
+							</DropdownMenu.Item>
+
+							<DropdownMenu.Item class="cursor-pointer" onclick={() => (moveOpen = true)}>
+								<FolderInput size={14} />
+								Move
+							</DropdownMenu.Item>
+
 							<DropdownMenu.Item class="cursor-pointer" onclick={() => (uploadOpen = true)}>
 								<Upload size={14} />
 								Upload new version
@@ -340,6 +366,15 @@
 						<p class="text-xs text-muted-foreground">
 							You can {detail.accessLevel === 'Editor' ? 'edit' : 'view'} this document.
 						</p>
+
+						{#if canEdit}
+							<button
+								class="cursor-pointer self-start text-xs text-primary underline-offset-2 hover:underline"
+								onclick={() => (shareOpen = true)}
+							>
+								Manage access
+							</button>
+						{/if}
 					</section>
 
 					<section class="flex flex-col gap-2">
@@ -406,4 +441,8 @@
 		versionOf={detail}
 		onuploaded={onVersionUploaded}
 	/>
+
+	<ShareDocumentDialog bind:open={shareOpen} documentId={detail.id} onsaved={load} />
+	<MoveDocumentDialog bind:open={moveOpen} document={detail} onmoved={load} />
+	<EditDocumentDialog bind:open={editOpen} document={detail} onsaved={load} />
 {/if}
