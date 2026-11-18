@@ -55,7 +55,7 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
         Guid projectId = await creator.CreateProjectAsync();
         string libraryUpload = await creator.UploadFileAsync("document.pdf", "%PDF-1.4 library"u8.ToArray());
         Guid existingDocument = await creator.CreateProjectDocumentAsync(projectId);
-        Guid existingVersion = await LatestVersionIdAsync(creator, projectId, existingDocument);
+        Guid existingVersion = await LatestVersionIdAsync(creator, existingDocument);
 
         // A library upload, a version that is already taken, an object that doesn't exist and garbage
         foreach (string objectName in new[] { libraryUpload, existingVersion.ToString(), Guid.NewGuid().ToString(), "not-a-guid" })
@@ -113,11 +113,11 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
         Assert.All(stored.Values, d => Assert.Equal(projectId, d.ProjectId));
         Assert.Null(stored[inRoot].FolderId);
         Assert.Equal(subfolderId, stored[inSubfolder].FolderId);
-        Assert.Equal(subfolderId, (await GetDetailAsync(creator, projectId, inSubfolder)).GetProperty("folderId").GetGuid());
+        Assert.Equal(subfolderId, (await GetDetailAsync(creator, inSubfolder)).GetProperty("folderId").GetGuid());
     }
 
     [Fact]
-    public async Task FolderAccess_UsesRootMembership_AndDocumentRoutesWorkThroughAnyFolder()
+    public async Task DocumentLinks_NeedNoProject_ButAccessStillFollowsTheRootMembership()
     {
         var (creator, _) = await fixture.LoginAsNewUserAsync();
         var (member, memberId) = await fixture.LoginAsNewUserAsync();
@@ -130,16 +130,16 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
         Assert.Equivalent(new[] { documentId }, await ListIdsAsync(member, folderId));
         Assert.Empty(await ListIdsAsync(outsider, folderId));
 
-        // The route's project only has to be in the same tree, so links survive moves between folders
-        foreach (Guid via in new[] { projectId, folderId, otherFolderId })
-            Assert.Equal(documentId, (await GetDetailAsync(member, via, documentId)).GetProperty("id").GetGuid());
+        // Membership of the root counts, although the link names neither the project nor the folder
+        JsonElement detail = await GetDetailAsync(member, documentId);
+        Assert.Equal(projectId, detail.GetProperty("projectId").GetGuid());
+        Assert.Equal(folderId, detail.GetProperty("folderId").GetGuid());
+        Assert.Equal(HttpStatusCode.NotFound, (await outsider.GetAsync($"/project-documents/{documentId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await RenameAsync(member, documentId)).StatusCode);
 
-        Assert.Equal(HttpStatusCode.NotFound, (await outsider.GetAsync($"/projects/{folderId}/documents/{documentId}")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await RenameAsync(member, folderId, documentId)).StatusCode);
-
-        // Another project's id never finds it
-        Guid otherProjectId = await creator.CreateProjectAsync(memberId);
-        Assert.Equal(HttpStatusCode.NotFound, (await member.GetAsync($"/projects/{otherProjectId}/documents/{documentId}")).StatusCode);
+        // The same link keeps working after the document moves
+        await Api.EnsureAsync(await MoveAsync(creator, documentId, otherFolderId), HttpStatusCode.NoContent);
+        Assert.Equal(otherFolderId, (await GetDetailAsync(member, documentId)).GetProperty("folderId").GetGuid());
     }
 
     [Fact]
@@ -150,22 +150,22 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
         Guid projectId = await creator.CreateProjectAsync(viewerId);
         Guid folderId = await creator.CreateFolderAsync(projectId);
         Guid documentId = await creator.CreateProjectDocumentAsync(projectId, "ProjectMembers", "Viewer");
-        DateTime updatedBefore = (await GetDetailAsync(creator, projectId, documentId)).GetProperty("updatedOn").GetDateTime();
+        DateTime updatedBefore = (await GetDetailAsync(creator, documentId)).GetProperty("updatedOn").GetDateTime();
 
-        await Api.EnsureAsync(await MoveAsync(creator, projectId, documentId, folderId), HttpStatusCode.NoContent);
+        await Api.EnsureAsync(await MoveAsync(creator, documentId, folderId), HttpStatusCode.NoContent);
         Assert.Empty(await ListIdsAsync(creator, projectId));
         Assert.Equivalent(new[] { documentId }, await ListIdsAsync(creator, folderId));
-        Assert.Equal(updatedBefore, (await GetDetailAsync(creator, folderId, documentId)).GetProperty("updatedOn").GetDateTime());
+        Assert.Equal(updatedBefore, (await GetDetailAsync(creator, documentId)).GetProperty("updatedOn").GetDateTime());
 
-        await Api.EnsureAsync(await MoveAsync(creator, folderId, documentId, projectId), HttpStatusCode.NoContent);
+        await Api.EnsureAsync(await MoveAsync(creator, documentId, projectId), HttpStatusCode.NoContent);
         Assert.Equivalent(new[] { documentId }, await ListIdsAsync(creator, projectId));
 
         Guid otherProjectId = await creator.CreateProjectAsync();
         Guid otherFolderId = await creator.CreateFolderAsync(otherProjectId);
         foreach (Guid destination in new[] { otherProjectId, otherFolderId, Guid.NewGuid() })
-            Assert.Equal(HttpStatusCode.BadRequest, (await MoveAsync(creator, projectId, documentId, destination)).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await MoveAsync(creator, documentId, destination)).StatusCode);
 
-        Assert.Equal(HttpStatusCode.Forbidden, (await MoveAsync(viewer, projectId, documentId, folderId)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await MoveAsync(viewer, documentId, folderId)).StatusCode);
         Assert.Equivalent(new[] { documentId }, await ListIdsAsync(creator, projectId));
     }
 
@@ -219,13 +219,13 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
         var (admin, _) = await fixture.LoginAsNewUserAsync("admin");
         Guid projectId = await creator.CreateProjectAsync();
         Guid documentId = await creator.CreateProjectDocumentAsync(projectId, "Restricted");
-        Guid versionId = await LatestVersionIdAsync(creator, projectId, documentId);
-        string url = $"/projects/{projectId}/documents/{documentId}";
+        Guid versionId = await LatestVersionIdAsync(creator, documentId);
+        string url = $"/project-documents/{documentId}";
 
         Assert.Equal(HttpStatusCode.NotFound, (await admin.GetAsync(url)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await admin.GetAsync($"{url}/versions/{versionId}/preview")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await admin.GetAsync($"{url}/versions/{versionId}/download")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await RenameAsync(admin, projectId, documentId)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await RenameAsync(admin, documentId)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await admin.DeleteAsync(url)).StatusCode);
     }
 
@@ -236,13 +236,13 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
         var (viewer, viewerId) = await fixture.LoginAsNewUserAsync();
         Guid projectId = await creator.CreateProjectAsync();
         Guid documentId = await creator.CreateProjectDocumentAsync(projectId, "Restricted", grants: [Api.Grant(viewerId, "Viewer")]);
-        Guid versionId = await LatestVersionIdAsync(creator, projectId, documentId);
-        string url = $"/projects/{projectId}/documents/{documentId}";
+        Guid versionId = await LatestVersionIdAsync(creator, documentId);
+        string url = $"/project-documents/{documentId}";
 
         Assert.Equal(HttpStatusCode.OK, (await viewer.GetAsync($"{url}/versions/{versionId}/preview")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await viewer.GetAsync($"{url}/versions/{versionId}/download")).StatusCode);
 
-        Assert.Equal(HttpStatusCode.Forbidden, (await RenameAsync(viewer, projectId, documentId)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await RenameAsync(viewer, documentId)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await viewer.PutAsJsonAsync($"{url}/access", new { visibility = "Everyone", generalAccessType = "Editor", grants = Array.Empty<object>() })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await viewer.PostAsJsonAsync($"{url}/versions", new { objectName = await viewer.UploadProjectDocumentFileAsync(), fileName = "document.pdf" })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await viewer.DeleteAsync(url)).StatusCode);
@@ -256,13 +256,13 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
         Guid projectId = await creator.CreateProjectAsync(memberId);
         Guid documentId = await creator.CreateProjectDocumentAsync(projectId, "ProjectMembers", "Viewer");
 
-        Assert.Equal(HttpStatusCode.Forbidden, (await RenameAsync(member, projectId, documentId)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await RenameAsync(member, documentId)).StatusCode);
 
-        HttpResponseMessage setAccess = await creator.PutAsJsonAsync($"/projects/{projectId}/documents/{documentId}/access",
+        HttpResponseMessage setAccess = await creator.PutAsJsonAsync($"/project-documents/{documentId}/access",
             new { visibility = "ProjectMembers", generalAccessType = "Viewer", grants = new[] { Api.Grant(memberId, "Editor") } });
         await Api.EnsureAsync(setAccess, HttpStatusCode.NoContent);
 
-        Assert.Equal(HttpStatusCode.NoContent, (await RenameAsync(member, projectId, documentId)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await RenameAsync(member, documentId)).StatusCode);
     }
 
     [Fact]
@@ -274,11 +274,11 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
         Guid projectId = await creator.CreateProjectAsync();
         Guid documentId = await creator.CreateProjectDocumentAsync(projectId, "Restricted");
 
-        HttpResponseMessage setAccess = await owner.PutAsJsonAsync($"/projects/{projectId}/documents/{documentId}/access",
+        HttpResponseMessage setAccess = await owner.PutAsJsonAsync($"/project-documents/{documentId}/access",
             new { visibility = "Restricted", generalAccessType = "Viewer", grants = new[] { Api.Grant(colleagueId, "Editor") } });
         await Api.EnsureAsync(setAccess, HttpStatusCode.NoContent);
 
-        Assert.Equal(HttpStatusCode.NoContent, (await RenameAsync(colleague, projectId, documentId)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await RenameAsync(colleague, documentId)).StatusCode);
     }
 
     [Fact]
@@ -288,7 +288,7 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
         var (_, colleagueId) = await fixture.LoginAsNewUserAsync();
         Guid projectId = await creator.CreateProjectAsync();
         Guid documentId = await creator.CreateProjectDocumentAsync(projectId);
-        string url = $"/projects/{projectId}/documents/{documentId}/access";
+        string url = $"/project-documents/{documentId}/access";
 
         object[] duplicate = [Api.Grant(colleagueId, "Viewer"), Api.Grant(colleagueId, "Editor")];
         object[] unknown = [Api.Grant(Guid.NewGuid(), "Viewer")];
@@ -309,7 +309,7 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
 
         await Api.EnsureAsync(await owner.DeleteAsync($"/users/{internId}"), HttpStatusCode.OK);
 
-        JsonElement detail = await GetDetailAsync(owner, projectId, sharedDocument);
+        JsonElement detail = await GetDetailAsync(owner, sharedDocument);
         Assert.Empty(detail.GetProperty("grants").EnumerateArray());
         Assert.Contains(internsDocument, await ListIdsAsync(creator, projectId));
     }
@@ -322,18 +322,18 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
         var (creator, _) = await fixture.LoginAsNewUserAsync();
         Guid projectId = await creator.CreateProjectAsync();
         Guid documentId = await creator.CreateProjectDocumentAsync(projectId, content: "%PDF-1.4 first"u8.ToArray());
-        Guid firstVersion = await LatestVersionIdAsync(creator, projectId, documentId);
+        Guid firstVersion = await LatestVersionIdAsync(creator, documentId);
 
         string upload = await creator.UploadProjectDocumentFileAsync(content: "%PDF-1.4 second"u8.ToArray());
-        Guid secondVersion = await Api.ReadGuidAsync(await creator.PostAsJsonAsync($"/projects/{projectId}/documents/{documentId}/versions",
+        Guid secondVersion = await Api.ReadGuidAsync(await creator.PostAsJsonAsync($"/project-documents/{documentId}/versions",
             new { objectName = upload, fileName = "document.pdf", note = "Second draft" }));
 
-        JsonElement detail = await GetDetailAsync(creator, projectId, documentId);
+        JsonElement detail = await GetDetailAsync(creator, documentId);
         Assert.Equal(2, detail.GetProperty("latestVersion").GetProperty("versionNumber").GetInt32());
         Assert.Equal(secondVersion, detail.GetProperty("latestVersion").GetProperty("id").GetGuid());
         Assert.Equal(2, detail.GetProperty("versions").GetArrayLength());
 
-        string url = $"/projects/{projectId}/documents/{documentId}/versions";
+        string url = $"/project-documents/{documentId}/versions";
         Assert.Equal("%PDF-1.4 first", await creator.GetStringAsync($"{url}/{firstVersion}/download"));
         Assert.Equal("%PDF-1.4 second", await creator.GetStringAsync($"{url}/{secondVersion}/download"));
     }
@@ -344,7 +344,7 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
         var (creator, _) = await fixture.LoginAsNewUserAsync();
         Guid projectId = await creator.CreateProjectAsync();
         Guid documentId = await creator.CreateProjectDocumentAsync(projectId);
-        string versionsUrl = $"/projects/{projectId}/documents/{documentId}/versions";
+        string versionsUrl = $"/project-documents/{documentId}/versions";
         string losingUpload = await creator.UploadProjectDocumentFileAsync();
         string winningUpload = await creator.UploadProjectDocumentFileAsync();
 
@@ -354,7 +354,7 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
             await Api.ReadGuidAsync(await creator.PostAsJsonAsync(versionsUrl, new { objectName = winningUpload, fileName = "document.pdf" }))));
         using IServiceScope scope = fixture.Services.CreateScope();
         ProjectDocumentService service = new(db, fixture.Storage, fixture.Services.GetRequiredService<EnvironmentConfig>(), scope.ServiceProvider.GetRequiredService<IVectorStore>());
-        var document = (await service.GetAsync(projectId, documentId))!;
+        var document = (await service.GetAsync(documentId))!;
 
         Guid? lost = await service.AddVersionAsync(document, new() { ObjectName = losingUpload, FileName = "document.pdf" }, document.CreatedBy);
 
@@ -363,7 +363,7 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
 
         // Retrying the same upload through the API, as the frontend does after a 409, now becomes v3
         await Api.ReadGuidAsync(await creator.PostAsJsonAsync(versionsUrl, new { objectName = losingUpload, fileName = "document.pdf" }));
-        JsonElement detail = await GetDetailAsync(creator, projectId, documentId);
+        JsonElement detail = await GetDetailAsync(creator, documentId);
         Assert.Equal(3, detail.GetProperty("latestVersion").GetProperty("versionNumber").GetInt32());
     }
 
@@ -373,8 +373,8 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
         var (creator, _) = await fixture.LoginAsNewUserAsync();
         Guid projectId = await creator.CreateProjectAsync();
         Guid documentId = await creator.CreateProjectDocumentAsync(projectId, title: "Evaluatie café \"fase 2\"");
-        Guid versionId = await LatestVersionIdAsync(creator, projectId, documentId);
-        string url = $"/projects/{projectId}/documents/{documentId}/versions/{versionId}";
+        Guid versionId = await LatestVersionIdAsync(creator, documentId);
+        string url = $"/project-documents/{documentId}/versions/{versionId}";
 
         HttpResponseMessage preview = await creator.GetAsync($"{url}/preview");
         await Api.EnsureAsync(preview, HttpStatusCode.OK);
@@ -399,8 +399,8 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
         try
         {
             Guid documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "minutes.docx", content: "word"u8.ToArray());
-            Guid versionId = await LatestVersionIdAsync(creator, projectId, documentId);
-            string url = $"/projects/{projectId}/documents/{documentId}/versions/{versionId}";
+            Guid versionId = await LatestVersionIdAsync(creator, documentId);
+            string url = $"/project-documents/{documentId}/versions/{versionId}";
 
             Assert.Equal(HttpStatusCode.Conflict, (await creator.GetAsync($"{url}/preview")).StatusCode);
 
@@ -422,8 +422,8 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
         var (creator, _) = await fixture.LoginAsNewUserAsync();
         Guid projectId = await creator.CreateProjectAsync();
         Guid documentId = await creator.CreateProjectDocumentAsync(projectId);
-        Guid versionId = await LatestVersionIdAsync(creator, projectId, documentId);
-        string url = $"/projects/{projectId}/documents/{documentId}";
+        Guid versionId = await LatestVersionIdAsync(creator, documentId);
+        string url = $"/project-documents/{documentId}";
 
         Assert.Equal(HttpStatusCode.NoContent, (await creator.DeleteAsync(url)).StatusCode);
 
@@ -475,7 +475,7 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
         var (creator, _) = await fixture.LoginAsNewUserAsync();
         Guid projectId = await creator.CreateProjectAsync();
         Guid documentId = await creator.CreateProjectDocumentAsync(projectId);
-        string versionKey = $"project-docs/{await LatestVersionIdAsync(creator, projectId, documentId)}";
+        string versionKey = $"project-docs/{await LatestVersionIdAsync(creator, documentId)}";
         string abandonedUpload = $"project-docs/{await creator.UploadProjectDocumentFileAsync()}";
         string stalePreview = $"project-docs/{Guid.NewGuid()}-preview";
         await fixture.Storage.UploadObjectAsync(BucketName, stalePreview, new MemoryStream([1]));
@@ -542,11 +542,11 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
             generalAccessType = "Editor"
         });
 
-    private static Task<HttpResponseMessage> MoveAsync(HttpClient client, Guid projectId, Guid documentId, Guid destinationId)
-        => client.PostAsJsonAsync($"/projects/{projectId}/documents/{documentId}/move", new { destinationId });
+    private static Task<HttpResponseMessage> MoveAsync(HttpClient client, Guid documentId, Guid destinationId)
+        => client.PostAsJsonAsync($"/project-documents/{documentId}/move", new { destinationId });
 
-    private static Task<HttpResponseMessage> RenameAsync(HttpClient client, Guid projectId, Guid documentId)
-        => client.PatchAsJsonAsync($"/projects/{projectId}/documents/{documentId}", new { title = Api.Unique("Renamed") });
+    private static Task<HttpResponseMessage> RenameAsync(HttpClient client, Guid documentId)
+        => client.PatchAsJsonAsync($"/project-documents/{documentId}", new { title = Api.Unique("Renamed") });
 
     private static async Task<Guid[]> ListIdsAsync(HttpClient client, Guid projectId)
     {
@@ -556,13 +556,13 @@ public class ProjectDocumentTests(KennisbankFixture fixture)
         return [.. list.EnumerateArray().Select(d => d.GetProperty("id").GetGuid())];
     }
 
-    private static async Task<JsonElement> GetDetailAsync(HttpClient client, Guid projectId, Guid documentId)
+    private static async Task<JsonElement> GetDetailAsync(HttpClient client, Guid documentId)
     {
-        HttpResponseMessage response = await client.GetAsync($"/projects/{projectId}/documents/{documentId}");
+        HttpResponseMessage response = await client.GetAsync($"/project-documents/{documentId}");
         await Api.EnsureAsync(response, HttpStatusCode.OK);
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
 
-    private static async Task<Guid> LatestVersionIdAsync(HttpClient client, Guid projectId, Guid documentId)
-        => (await GetDetailAsync(client, projectId, documentId)).GetProperty("latestVersion").GetProperty("id").GetGuid();
+    private static async Task<Guid> LatestVersionIdAsync(HttpClient client, Guid documentId)
+        => (await GetDetailAsync(client, documentId)).GetProperty("latestVersion").GetProperty("id").GetGuid();
 }

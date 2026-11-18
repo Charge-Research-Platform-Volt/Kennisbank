@@ -9,9 +9,14 @@ import type {
 	ProjectDocumentVersion
 } from '#lib/types/project-document.js';
 
-// projectId can be the root project or any of its folders: lists and uploads use it as the location,
-// single-document calls only need it to find the project
-const base = (projectId: string) => `/api/projects/${projectId}/documents`;
+// Lists and uploads go through a project: the root or one of its folders, which is where a new document lands.
+// Everything about one document only needs its own id, like a Drive file link, so links survive moves.
+const projectUrl = (projectId: string) => `/api/projects/${projectId}/documents`;
+const documentUrl = (documentId: string) => `/api/project-documents/${documentId}`;
+
+type UploadedFile = { objectName: string; fileName: string; note?: string };
+type NewDocument = UploadedFile & ProjectDocumentAccess & { title: string; typeId: string };
+type DocumentChanges = { title?: string; typeId?: string };
 
 /** What the backend accepts; the upload is refused for anything else */
 export const supportedExtensions = ['pdf', 'docx'];
@@ -22,39 +27,29 @@ export function isSupportedFile(fileName: string): boolean {
 }
 
 export const projectDocuments = {
-	list: (projectId: string) => api.get<ProjectDocument[]>(base(projectId)),
-	get: (projectId: string, documentId: string) =>
-		api.get<ProjectDocumentDetail>(`${base(projectId)}/${documentId}`),
-	create: (
-		projectId: string,
-		body: {
-			objectName: string;
-			fileName: string;
-			title: string;
-			typeId: string;
-			note?: string;
-		} & ProjectDocumentAccess
-	) => api.post<string>(base(projectId), body),
-	addVersion: (
-		projectId: string,
-		documentId: string,
-		body: { objectName: string; fileName: string; note?: string }
-	) => api.post<string>(`${base(projectId)}/${documentId}/versions`, body),
-	update: (projectId: string, documentId: string, body: { title?: string; typeId?: string }) =>
-		api.patch(`${base(projectId)}/${documentId}`, body),
-	setAccess: (projectId: string, documentId: string, body: ProjectDocumentAccess) =>
-		api.put(`${base(projectId)}/${documentId}/access`, body),
-	move: (projectId: string, documentId: string, destinationId: string) =>
-		api.post(`${base(projectId)}/${documentId}/move`, { destinationId }),
-	delete: (projectId: string, documentId: string) => api.delete(`${base(projectId)}/${documentId}`),
+	// Per location
+	list: (projectId: string) => api.get<ProjectDocument[]>(projectUrl(projectId)),
+	create: (projectId: string, body: NewDocument) => api.post<string>(projectUrl(projectId), body),
+
+	// Per document
+	get: (documentId: string) => api.get<ProjectDocumentDetail>(documentUrl(documentId)),
+	update: (documentId: string, body: DocumentChanges) => api.patch(documentUrl(documentId), body),
+	addVersion: (documentId: string, body: UploadedFile) =>
+		api.post<string>(`${documentUrl(documentId)}/versions`, body),
+	setAccess: (documentId: string, body: ProjectDocumentAccess) =>
+		api.put(`${documentUrl(documentId)}/access`, body),
+	move: (documentId: string, destinationId: string) =>
+		api.post(`${documentUrl(documentId)}/move`, { destinationId }),
+	delete: (documentId: string) => api.delete(documentUrl(documentId)),
+
 	types: () => api.get<ProjectDocumentType[]>('/api/project-document-types')
 };
 
-export const previewUrl = (projectId: string, documentId: string, versionId: string) =>
-	`${base(projectId)}/${documentId}/versions/${versionId}/preview`;
+export const previewUrl = (documentId: string, versionId: string) =>
+	`${documentUrl(documentId)}/versions/${versionId}/preview`;
 
-export const downloadUrl = (projectId: string, documentId: string, versionId: string) =>
-	`${base(projectId)}/${documentId}/versions/${versionId}/download`;
+export const downloadUrl = (documentId: string, versionId: string) =>
+	`${documentUrl(documentId)}/versions/${versionId}/download`;
 
 export const visibilityLabels: Record<DocumentVisibility, string> = {
 	Restricted: 'Restricted',

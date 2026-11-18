@@ -67,12 +67,12 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
     #region Queries
 
     /// <summary>Loads a document with everything the access check and detail view need. Tracked, so it can be modified.</summary>
-    public async Task<ProjectDocument?> GetAsync(Guid rootProjectId, Guid documentId)
+    public async Task<ProjectDocument?> GetAsync(Guid documentId)
         => await db.ProjectDocuments
             .Include(d => d.Access)
             .Include(d => d.Versions)
             .Include(d => d.Type)
-            .FirstOrDefaultAsync(d => d.Id == documentId && d.ProjectId == rootProjectId);
+            .FirstOrDefaultAsync(d => d.Id == documentId);
 
     public async Task<List<ProjectDocumentListItemDto>> ListAsync(Guid rootProjectId, Guid? folderId, string userId, bool isOwner)
     {
@@ -351,6 +351,7 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
         dto.Title = document.Title;
         dto.TypeId = document.TypeId;
         dto.TypeName = document.Type?.Name ?? string.Empty;
+        dto.ProjectId = document.ProjectId;
         dto.FolderId = document.FolderId;
         dto.Visibility = document.Visibility;
         dto.GeneralAccessType = document.GeneralAccessType;

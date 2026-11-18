@@ -73,6 +73,9 @@ public class ProjectDocumentListItemDto
     public string Title { get; set; } = string.Empty;
     public Guid TypeId { get; set; }
     public string TypeName { get; set; } = string.Empty;
+    // The root project: the viewer needs it for the project chat and the folder tree
+    public Guid ProjectId { get; set; }
+    // Where it sits in that project; null is the root itself
     public Guid? FolderId { get; set; }
     public ProjectDocumentVisibility Visibility { get; set; }
     public ProjectDocumentAccessType GeneralAccessType { get; set; }

@@ -82,12 +82,8 @@ describe('getVisibilityIcon', () => {
 });
 
 describe('document urls', () => {
-	it('go through the project the document is opened from', () => {
-		expect(previewUrl('folder', 'doc', 'v2')).toBe(
-			'/api/projects/folder/documents/doc/versions/v2/preview'
-		);
-		expect(downloadUrl('root', 'doc', 'v1')).toBe(
-			'/api/projects/root/documents/doc/versions/v1/download'
-		);
+	it('only need the document, not the project or folder it sits in', () => {
+		expect(previewUrl('doc', 'v2')).toBe('/api/project-documents/doc/versions/v2/preview');
+		expect(downloadUrl('doc', 'v1')).toBe('/api/project-documents/doc/versions/v1/download');
 	});
 });

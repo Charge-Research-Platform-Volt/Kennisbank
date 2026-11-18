@@ -120,12 +120,12 @@
 
 	// The response is an attachment, so the browser downloads it without leaving the page
 	function downloadDocument(doc: ProjectDocument) {
-		window.location.href = downloadUrl(page.params.id!, doc.id, doc.latestVersion.id);
+		window.location.href = downloadUrl(doc.id, doc.latestVersion.id);
 	}
 
 	async function deleteDocument(doc: ProjectDocument) {
 		try {
-			await projectDocuments.delete(page.params.id!, doc.id);
+			await projectDocuments.delete(doc.id);
 			await fetchDocuments();
 			toast.success('Successfully deleted document.');
 		} catch (e) {

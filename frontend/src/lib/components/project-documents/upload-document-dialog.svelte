@@ -115,7 +115,7 @@
 			let documentId: string;
 
 			if (versionOf) {
-				await projectDocuments.addVersion(projectId, versionOf.id, body);
+				await projectDocuments.addVersion(versionOf.id, body);
 				documentId = versionOf.id;
 			} else {
 				documentId = await projectDocuments.create(projectId, {
@@ -233,17 +233,18 @@
 			{/if}
 		</div>
 
-        <Dialog.Footer>
-            <Button variant="outline" class="cursor-pointer" onclick={() => (open = false)}>Cancel</Button>
-            <Button class="cursor-pointer" disabled={!canSubmit} onclick={submit}>
-                {#if submitting}
-                    {progress != null && progress < 1
-                        ? `Uploading ${Math.round(progress * 100)}%`
-                        : 'Saving...'}
-                {:else}
-                    {isNewVersion ? 'Upload version' : 'Upload'}
-                {/if}
-            </Button>
-        </Dialog.Footer>
+		<Dialog.Footer>
+			<Button variant="outline" class="cursor-pointer" onclick={() => (open = false)}>Cancel</Button
+			>
+			<Button class="cursor-pointer" disabled={!canSubmit} onclick={submit}>
+				{#if submitting}
+					{progress != null && progress < 1
+						? `Uploading ${Math.round(progress * 100)}%`
+						: 'Saving...'}
+				{:else}
+					{isNewVersion ? 'Upload version' : 'Upload'}
+				{/if}
+			</Button>
+		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>

@@ -44,7 +44,7 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
         Assert.Equal(docx.Length, version.SizeBytes);
         Assert.Contains(marker, version.ExtractedText);
 
-        HttpResponseMessage preview = await creator.GetAsync($"/projects/{projectId}/documents/{documentId}/versions/{version.Id}/preview");
+        HttpResponseMessage preview = await creator.GetAsync($"/project-documents/{documentId}/versions/{version.Id}/preview");
         await Api.EnsureAsync(preview, HttpStatusCode.OK);
         Assert.Equal("application/pdf", preview.Content.Headers.ContentType?.MediaType);
         Assert.Equal(FakeAiServer.ConvertedPdf, await preview.Content.ReadAsByteArrayAsync());
@@ -171,7 +171,7 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
         Assert.NotEmpty(await ChunksAsync(documentId));
         Assert.False(fixture.Storage.Exists(BucketName, ProjectDocumentService.PreviewKey(version.Id)));
 
-        HttpResponseMessage preview = await creator.GetAsync($"/projects/{projectId}/documents/{documentId}/versions/{version.Id}/preview");
+        HttpResponseMessage preview = await creator.GetAsync($"/project-documents/{documentId}/versions/{version.Id}/preview");
         await Api.EnsureAsync(preview, HttpStatusCode.Conflict);
     }
 
@@ -189,7 +189,7 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
         Assert.Equal(EmbeddingStatus.Completed, version.PreviewStatus);
         Assert.Equal(pdf.Length, version.SizeBytes);
         Assert.False(fixture.Storage.Exists(BucketName, ProjectDocumentService.PreviewKey(version.Id)));
-        Assert.Equal(pdf, await creator.GetByteArrayAsync($"/projects/{projectId}/documents/{documentId}/versions/{version.Id}/preview"));
+        Assert.Equal(pdf, await creator.GetByteArrayAsync($"/project-documents/{documentId}/versions/{version.Id}/preview"));
     }
 
     [Fact]
@@ -203,7 +203,7 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
         await Api.WaitUntilAsync(async () => (await MeiliChunksAsync(documentId)).Count > 0, "chunks in Meilisearch");
         Assert.True(fixture.Storage.Exists(BucketName, ProjectDocumentService.PreviewKey(versionId)));
 
-        await Api.EnsureAsync(await creator.DeleteAsync($"/projects/{projectId}/documents/{documentId}"), HttpStatusCode.NoContent);
+        await Api.EnsureAsync(await creator.DeleteAsync($"/project-documents/{documentId}"), HttpStatusCode.NoContent);
 
         Assert.Empty(await ChunksAsync(documentId));
         Assert.False(fixture.Storage.Exists(BucketName, ProjectDocumentService.StorageKey(versionId)));
@@ -383,7 +383,7 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
     private static async Task<Guid> AddVersionAsync(HttpClient client, Guid projectId, Guid documentId, byte[] docx)
     {
         string upload = await client.UploadProjectDocumentFileAsync("plan.docx", docx);
-        return await Api.ReadGuidAsync(await client.PostAsJsonAsync($"/projects/{projectId}/documents/{documentId}/versions",
+        return await Api.ReadGuidAsync(await client.PostAsJsonAsync($"/project-documents/{documentId}/versions",
             new { objectName = upload, fileName = "plan.docx" }));
     }
 

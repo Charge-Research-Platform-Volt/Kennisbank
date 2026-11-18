@@ -27,6 +27,9 @@ export type ProjectDocument = {
 	title: string;
 	typeId: string;
 	typeName: string;
+	/** Always the root project, whichever folder the document sits in */
+	projectId: string;
+	/** Where it sits in that project; null is the root itself */
 	folderId: string | null;
 	visibility: DocumentVisibility;
 	generalAccessType: DocumentAccessType;

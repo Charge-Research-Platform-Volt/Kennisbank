@@ -14,7 +14,6 @@ using KnowledgeBank.Services.AI;
 
 namespace KnowledgeBank.Controllers;
 
-[Route("projects/{projectId}/documents")]
 [Authorize]
 public class ProjectDocumentsController(
     ProjectDocumentService projectDocumentService,
@@ -32,7 +31,7 @@ public class ProjectDocumentsController(
 
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-    [HttpGet]
+    [HttpGet("projects/{projectId}/documents")]
     [SwaggerOperation(Summary = "List the project documents the current user can view")]
     [SwaggerResponse(200, "Document list")]
     [SwaggerResponse(404, "Project not found")]
@@ -42,19 +41,19 @@ public class ProjectDocumentsController(
         return Ok(await projectDocumentService.ListAsync(location.RootId, location.FolderId, UserId, await IsOwnerAsync()));
     }
 
-    [HttpGet("{documentId}")]
+    [HttpGet("project-documents/{documentId}")]
     [SwaggerOperation(Summary = "Get a document with its version and access list")]
     [SwaggerResponse(200, "Document detail")]
     [SwaggerResponse(404, "Not found or no access")]
-    public async Task<IActionResult> Get(Guid projectId, Guid documentId)
+    public async Task<IActionResult> Get(Guid documentId)
     {
-        var (document, level) = await LoadAsync(projectId, documentId);
+        var (document, level) = await LoadAsync(documentId);
         if (document == null || level == null) return NotFound();
 
         return Ok(await projectDocumentService.GetDetailAsync(document, level.Value)); 
     }
 
-    [HttpPost]
+    [HttpPost("projects/{projectId}/documents")]
     [SwaggerOperation(Summary = "Create a document from a finished project document upload")]
     [SwaggerResponse(200, "Document created", typeof(Guid))]
     [SwaggerResponse(400, "Invalid input")]
@@ -77,15 +76,15 @@ public class ProjectDocumentsController(
         return Ok(documentId);
     }
 
-    [HttpPatch("{documentId}")]
+    [HttpPatch("project-documents/{documentId}")]
     [SwaggerOperation(Summary = "Rename a document or change its type")]
     [SwaggerResponse(204, "Updated")]
     [SwaggerResponse(400, "Invalid input")]
     [SwaggerResponse(403, "View-only access")]
     [SwaggerResponse(404, "Not found or no access")]
-    public async Task<IActionResult> Update(Guid projectId, Guid documentId, [FromBody] ProjectDocumentUpdateDto dto)
+    public async Task<IActionResult> Update(Guid documentId, [FromBody] ProjectDocumentUpdateDto dto)
     {
-        var (document, level) = await LoadAsync(projectId, documentId);
+        var (document, level) = await LoadAsync(documentId);
         if (EditCheck(document, level) is IActionResult denied) return denied;
 
         if (dto.Title != null && ValidateTitle(dto.Title) is string titleError) return Problem(titleError, statusCode: 400);
@@ -96,15 +95,15 @@ public class ProjectDocumentsController(
         return NoContent();
     }
 
-    [HttpPut("{documentId}/access")]
+    [HttpPut("project-documents/{documentId}/access")]
     [SwaggerOperation(Summary = "Replace a document's general access and personal grants")]
     [SwaggerResponse(204, "Access updated")]
     [SwaggerResponse(400, "Invalid input")]
     [SwaggerResponse(403, "View-only access")]
     [SwaggerResponse(404, "Not found or no access")]
-    public async Task<IActionResult> SetAccess(Guid projectId, Guid documentId, [FromBody] ProjectDocumentAccessUpdateDto dto)
+    public async Task<IActionResult> SetAccess(Guid documentId, [FromBody] ProjectDocumentAccessUpdateDto dto)
     {
-        var (document, level) = await LoadAsync(projectId, documentId);
+        var (document, level) = await LoadAsync(documentId);
         if (EditCheck(document, level) is IActionResult denied) return denied;
 
         if (await ValidateAccessAsync(dto.Visibility, dto.GeneralAccessType, dto.Grants) is string accessError)
@@ -114,16 +113,16 @@ public class ProjectDocumentsController(
         return NoContent();
     }
 
-    [HttpPost("{documentId}/versions")]
+    [HttpPost("project-documents/{documentId}/versions")]
     [SwaggerOperation(Summary = "Add a new version from a finished project document upload")]
     [SwaggerResponse(200, "Version added", typeof(Guid))]
     [SwaggerResponse(400, "Invalid input")]
     [SwaggerResponse(403, "View-only access")]
     [SwaggerResponse(404, "Not found or no access")]
     [SwaggerResponse(409, "Someone else added a version at the same time")]
-    public async Task<IActionResult> AddVersion(Guid projectId, Guid documentId, [FromBody] ProjectDocumentVersionCreateDto dto)
+    public async Task<IActionResult> AddVersion(Guid documentId, [FromBody] ProjectDocumentVersionCreateDto dto)
     {
-        var (document, level) = await LoadAsync(projectId, documentId);
+        var (document, level) = await LoadAsync(documentId);
         if (EditCheck(document, level) is IActionResult denied) return denied;
 
         if (await ValidateUploadAsync(dto.ObjectName, dto.FileName) is string uploadError) return Problem(uploadError, statusCode: 400);
@@ -137,15 +136,15 @@ public class ProjectDocumentsController(
         return Ok(versionId);
     }
 
-    [HttpPost("{documentId}/move")]
+    [HttpPost("project-documents/{documentId}/move")]
     [SwaggerOperation(Summary = "Move a document to the project root or one of its folders")]
     [SwaggerResponse(204, "Moved")]
     [SwaggerResponse(400, "Destination is not part of this project")]
     [SwaggerResponse(403, "View-only access")]
     [SwaggerResponse(404, "Not found or no access")]
-    public async Task<IActionResult> Move(Guid projectId, Guid documentId, [FromBody] ProjectDocumentMoveDto dto)
+    public async Task<IActionResult> Move(Guid documentId, [FromBody] ProjectDocumentMoveDto dto)
     {
-        var (document, level) = await LoadAsync(projectId, documentId);
+        var (document, level) = await LoadAsync(documentId);
         if (EditCheck(document, level) is IActionResult denied) return denied;
 
         if (await projectService.ResolveLocationAsync(dto.DestinationId) is not { } destination || destination.RootId != document!.ProjectId)
@@ -155,27 +154,27 @@ public class ProjectDocumentsController(
         return NoContent();
     }
 
-    [HttpDelete("{documentId}")]
+    [HttpDelete("project-documents/{documentId}")]
     [SwaggerOperation(Summary = "Permanently delete a document and all its versions")]
     [SwaggerResponse(204, "Deleted")]
     [SwaggerResponse(403, "View-only access")]
     [SwaggerResponse(404, "Not found or no access")]
-    public async Task<IActionResult> Delete(Guid projectId, Guid documentId)
+    public async Task<IActionResult> Delete(Guid documentId)
     {
-        var (document, level) = await LoadAsync(projectId, documentId);
+        var (document, level) = await LoadAsync(documentId);
         if (EditCheck(document, level) is IActionResult denied) return denied;
 
         await projectDocumentService.DeleteAsync(document!, UserId);
         return NoContent();
     }
 
-    [HttpGet("{documentId}/versions/{versionId}/download")]
+    [HttpGet("project-documents/{documentId}/versions/{versionId}/download")]
     [SwaggerOperation(Summary = "Download the original file of a version")]
     [SwaggerResponse(200, "File stream")]
     [SwaggerResponse(404, "Not found or no access")]
-    public async Task<IActionResult> Download(Guid projectId, Guid documentId, Guid versionId)
+    public async Task<IActionResult> Download(Guid documentId, Guid versionId)
     {
-        var (document, level) = await LoadAsync(projectId, documentId);
+        var (document, level) = await LoadAsync(documentId);
         ProjectDocumentVersion? version = document?.Versions!.FirstOrDefault(v => v.Id == versionId);
         if (version == null || level == null) return NotFound();
 
@@ -185,14 +184,14 @@ public class ProjectDocumentsController(
         return File(response.Stream, Filetype.GetMimeType(version.Extension), fileName);
     }
 
-    [HttpGet("{documentId}/versions/{versionId}/preview")]
+    [HttpGet("project-documents/{documentId}/versions/{versionId}/preview")]
     [SwaggerOperation(Summary = "View a version as PDF in the browser")]
     [SwaggerResponse(200, "PDF stream")]
     [SwaggerResponse(404, "Not found or no access")]
     [SwaggerResponse(409, "Preview not ready yet")]
-    public async Task<IActionResult> Preview(Guid projectId, Guid documentId, Guid versionId)
+    public async Task<IActionResult> Preview(Guid documentId, Guid versionId)
     {
-        var (document, level) = await LoadAsync(projectId, documentId);
+        var (document, level) = await LoadAsync(documentId);
         ProjectDocumentVersion? version = document?.Versions!.FirstOrDefault(v => v.Id == versionId);
         if (version == null || level == null) return NotFound();
 
@@ -218,15 +217,13 @@ public class ProjectDocumentsController(
     private async Task<bool> IsOwnerAsync()
         => (await authorizationService.AuthorizeAsync(User, "RequireOwner")).Succeeded;
 
-    private async Task<(ProjectDocument? Document, ProjectDocumentAccessType? Level)> LoadAsync(Guid projectId, Guid documentId)
+    private async Task<(ProjectDocument? Document, ProjectDocumentAccessType? Level)> LoadAsync(Guid documentId)
     {
-        // Any project in the tree finds the document, so links keep working after it moves between folders
-        if (await projectService.ResolveLocationAsync(projectId) is not { } location) return (null, null);
-
-        ProjectDocument? document = await projectDocumentService.GetAsync(location.RootId, documentId);
+        ProjectDocument? document = await projectDocumentService.GetAsync(documentId);
         if (document == null) return (null, null);
 
-        bool isMember = await projectDocumentService.IsMemberAsync(location.RootId, UserId);
+        // Membership of the document's own root project: the URL no longer names a project
+        bool isMember = await projectDocumentService.IsMemberAsync(document.ProjectId, UserId);
         return (document, ProjectDocumentService.GetAccessLevel(document, UserId, isMember, await IsOwnerAsync()));
     }
 
