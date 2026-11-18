@@ -51,8 +51,7 @@ public class ProjectDocumentVersionDto
     public string OriginalFileName { get; set; } = string.Empty;
     public long? SizeBytes { get; set; }
     public string? Note { get; set; }
-    public Guid UploadedBy { get; set; }
-    public string UploadedByName { get; set; } = "Unknown";
+    public UserSummaryDto UploadedBy { get; set; } = UserSummaryDto.Unknown;
     public DateTime UploadedOn { get; set; }
     public EmbeddingStatus PreviewStatus { get; set; }
     public EmbeddingStatus EmbeddingStatus { get; set; }

@@ -19,6 +19,10 @@ public class ProjectItemRelation
     [Column("added-by")]
     public string? AddedBy { get; set; }
 
+    // Null for links made before this was recorded
+    [Column("added-on")]
+    public DateTime? AddedOn { get; set; }
+
     // Navigation properties
     [JsonIgnore] public Project? Project { get; set; }
 }

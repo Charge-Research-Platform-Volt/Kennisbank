@@ -52,6 +52,8 @@
 		visibilityLabels
 	} from '#lib/project-documents.js';
 	import type { ProjectDocument } from '#lib/types/project-document.js';
+	import type { UserSummary } from '#lib/types/user.js';
+	import LastModified from '#lib/components/ui/last-modified.svelte';
 	import UploadDocumentDialog from '#lib/components/project-documents/upload-document-dialog.svelte';
 	import { isSupportedFile } from '#lib/project-documents.js';
 
@@ -60,6 +62,19 @@
 	const toggleChat: () => void = getContext('toggleChat');
 
 	const MAX_VISIBLE_TAGS = 5;
+
+	const unknownUser: UserSummary = { id: null, name: 'Unknown', customAvatarVersion: null };
+
+	// For the row of a folder that's still being named
+	const currentUser = $derived<UserSummary>(
+		userState.user
+			? {
+					id: userState.user.id,
+					name: `${userState.user.firstName} ${userState.user.lastName}`,
+					customAvatarVersion: userState.user.customAvatarVersion
+				}
+			: unknownUser
+	);
 
 	let projectInfo = $state<ProjectInfo | null>(null);
 	let loading = $state(false);
@@ -544,7 +559,7 @@
 								</button>
 							</div>
 						</Table.Head>
-						<Table.Head class="w-px whitespace-nowrap">Added By</Table.Head>
+						<Table.Head class="w-px text-right whitespace-nowrap">Last modified</Table.Head>
 						<Table.Head class="w-px whitespace-nowrap" />
 					</tr>
 				</Table.Header>
@@ -582,9 +597,8 @@
 									/>
 								</div>
 							</Table.Cell>
-							<Table.Cell class="text-xs whitespace-nowrap text-muted-foreground">
-								{userState.user?.firstName}
-								{userState.user?.lastName}
+							<Table.Cell>
+								<LastModified date={new Date().toISOString()} user={currentUser} />
 							</Table.Cell>
 							<Table.Cell />
 						</Table.Row>
@@ -626,9 +640,13 @@
 												{/if}
 											</div>
 										</Table.Cell>
-										<Table.Cell class="text-xs whitespace-nowrap text-muted-foreground"
-											>{entry.addedBy}</Table.Cell
-										>
+										<Table.Cell>
+											<LastModified
+												date={entry.createdOn}
+												user={entry.addedBy ?? unknownUser}
+												action="Created"
+											/>
+										</Table.Cell>
 										<Table.Cell />
 									</Table.Row>
 								{/snippet}
@@ -706,8 +724,13 @@
 											</div>
 										</Table.Cell>
 
-										<Table.Cell class="text-xs whitespace-nowrap text-muted-foreground">
-											{doc.latestVersion.uploadedByName}
+										<!-- The latest version, not updatedOn: a rename or access change isn't a change to the content -->
+										<Table.Cell>
+											<LastModified
+												date={doc.latestVersion.uploadedOn}
+												user={doc.latestVersion.uploadedBy}
+												action="Uploaded"
+											/>
 										</Table.Cell>
 
 										<Table.Cell class="p-3">
@@ -777,9 +800,9 @@
 												{entry.name}
 											</div>
 										</Table.Cell>
-										<Table.Cell class="text-xs whitespace-nowrap text-muted-foreground"
-											>{entry.addedBy}</Table.Cell
-										>
+										<Table.Cell>
+											<LastModified date={entry.addedOn} user={entry.addedBy} />
+										</Table.Cell>
 										<Table.Cell class="p-3">
 											<div class="flex items-center justify-center">
 												{#if action === 'open'}

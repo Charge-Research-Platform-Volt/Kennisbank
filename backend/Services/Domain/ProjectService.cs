@@ -122,12 +122,7 @@ public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxon
         var itemUserIds = rawItems
             .Where(x => x.Relation.AddedBy != null).Select(x => x.Relation.AddedBy!).ToHashSet();
 
-        Dictionary<string, string> userNames = [];
-        var allUserIds = folderUserIds.Union(itemUserIds).ToHashSet();
-        if (allUserIds.Count > 0)
-            userNames = await db.Users
-                .Where(u => allUserIds.Contains(u.Id))
-                .ToDictionaryAsync(u => u.Id, u => $"{u.FirstName} {u.LastName}");
+        Dictionary<string, UserSummaryDto> users = await db.GetUserSummariesAsync(folderUserIds.Union(itemUserIds));
 
         List<ProjectFolderDto> folders = project.ChildFolders?
             .Where(r => r.ChildFolder != null)
@@ -135,7 +130,8 @@ public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxon
             {
                 Id = r.ChildFolder!.Id,
                 Title = r.ChildFolder.Title,
-                AddedBy = r.AddedBy != null && userNames.TryGetValue(r.AddedBy, out string? n) ? n : "Unknown"
+                AddedBy = users.Resolve(r.AddedBy),
+                CreatedOn = r.ChildFolder.CreatedOn
             })
             .ToList() ?? [];
 
@@ -152,8 +148,8 @@ public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxon
             CreatedOn = x.Item.CreatedOn,
             TypeId = x.Item.TypeId,
             JournalId = x.Item.JournalId,
-            AddedBy = x.Relation.AddedBy != null && userNames.TryGetValue(x.Relation.AddedBy, out string? n)
-                ? n : "Unknown"
+            AddedBy = users.Resolve(x.Relation.AddedBy),
+            AddedOn = x.Relation.AddedOn
         }).ToList();
 
         List<ProjectAncestor> ancestors = await GetAncestorsAsync(id);
@@ -380,7 +376,8 @@ public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxon
         {
             ProjectId = projectId,
             ItemId = itemId,
-            AddedBy = addedBy.ToString()
+            AddedBy = addedBy.ToString(),
+            AddedOn = DateTime.UtcNow
         });
         await db.SaveChangesAsync();
     }

@@ -23,8 +23,7 @@ function version(
 		originalFileName: 'plan',
 		sizeBytes: null,
 		note: null,
-		uploadedBy: 'u1',
-		uploadedByName: 'Test User',
+		uploadedBy: { id: 'u1', name: 'Test User', customAvatarVersion: null },
 		uploadedOn: '2026-11-09T12:00:00Z',
 		previewStatus,
 		embeddingStatus

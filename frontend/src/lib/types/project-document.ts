@@ -1,4 +1,5 @@
 import type { EmbeddingStatus } from './resource';
+import type { UserSummary } from './user';
 
 export type DocumentVisibility = 'Restricted' | 'ProjectMembers' | 'Everyone';
 export type DocumentAccessType = 'Viewer' | 'Editor';
@@ -15,8 +16,7 @@ export type ProjectDocumentVersion = {
 	originalFileName: string;
 	sizeBytes: number | null;
 	note: string | null;
-	uploadedBy: string;
-	uploadedByName: string;
+	uploadedBy: UserSummary;
 	uploadedOn: string;
 	previewStatus: EmbeddingStatus;
 	embeddingStatus: EmbeddingStatus;

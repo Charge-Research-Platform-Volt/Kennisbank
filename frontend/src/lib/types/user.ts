@@ -1,3 +1,10 @@
+/** Who did something, as the backend sends it for avatars. id is null when the user can't be found anymore */
+export type UserSummary = {
+	id: string | null;
+	name: string;
+	customAvatarVersion: number | null;
+};
+
 export type UserEntry = {
 	type: 'user';
 	id: string;

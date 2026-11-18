@@ -944,6 +944,10 @@ namespace KnowledgeBank.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("added-by");
 
+                    b.Property<DateTime?>("AddedOn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("added-on");
+
                     b.HasKey("ProjectId", "ItemId");
 
                     b.ToTable("project-item");

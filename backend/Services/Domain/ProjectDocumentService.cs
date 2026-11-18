@@ -91,14 +91,14 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
             .Where(x => x.Level != null)
             .ToList();
 
-        Dictionary<string, string> names = await GetUserNamesAsync(visible.Select(x => LatestVersion(x.Document).UploadedBy));
+        Dictionary<string, UserSummaryDto> users = await db.GetUserSummariesAsync(visible.Select(x => LatestVersion(x.Document).UploadedBy));
 
-        return [.. visible.Select(x => ToListItem(new ProjectDocumentListItemDto(), x.Document, x.Level!.Value, names))];
+        return [.. visible.Select(x => ToListItem(new ProjectDocumentListItemDto(), x.Document, x.Level!.Value, users))];
     }
 
     public async Task<ProjectDocumentDetailDto> GetDetailAsync(ProjectDocument document, ProjectDocumentAccessType level)
     {
-        Dictionary<string, string> names = await GetUserNamesAsync(document.Versions!.Select(v => v.UploadedBy));
+        Dictionary<string, UserSummaryDto> users = await db.GetUserSummariesAsync(document.Versions!.Select(v => v.UploadedBy));
 
         string[] grantUserIds = [.. document.Access!.Select(a => a.UserId)];
         var grantUsers = await db.Users
@@ -107,8 +107,8 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
             .Select(u => new { u.Id, u.FirstName, u.LastName, u.HasCustom, u.CustomAvatarVersion })
             .ToDictionaryAsync(u => u.Id);
 
-        ProjectDocumentDetailDto detail = ToListItem(new ProjectDocumentDetailDto(), document, level, names);
-        detail.Versions = [.. document.Versions!.OrderByDescending(v => v.VersionNumber).Select(v => ToVersionDto(v, names))];
+        ProjectDocumentDetailDto detail = ToListItem(new ProjectDocumentDetailDto(), document, level, users);
+        detail.Versions = [.. document.Versions!.OrderByDescending(v => v.VersionNumber).Select(v => ToVersionDto(v, users))];
         detail.Grants = [.. document.Access!
             .Where(a => grantUsers.ContainsKey(a.UserId))
             .Select(a => new ProjectDocumentGrantInfoDto {
@@ -320,16 +320,7 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
     private static ProjectDocumentVersion LatestVersion(ProjectDocument document)
         => document.Versions!.MaxBy(v => v.VersionNumber)!;
 
-    private async Task<Dictionary<string, string>> GetUserNamesAsync(IEnumerable<string> userIds)
-    {
-        string[] ids = [.. userIds.Distinct()];
-        return await db.Users
-            .AsNoTracking()
-            .Where(u => ids.Contains(u.Id))
-            .ToDictionaryAsync(u => u.Id, u => $"{u.FirstName} {u.LastName}");
-    }
-
-    private static ProjectDocumentVersionDto ToVersionDto(ProjectDocumentVersion version, Dictionary<string, string> names) => new()
+    private static ProjectDocumentVersionDto ToVersionDto(ProjectDocumentVersion version, Dictionary<string, UserSummaryDto> users) => new()
     {
         Id = version.Id,
         VersionNumber = version.VersionNumber,
@@ -337,14 +328,13 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
         OriginalFileName = version.OriginalFileName,
         SizeBytes = version.SizeBytes,
         Note = version.Note,
-        UploadedBy = Guid.Parse(version.UploadedBy),
-        UploadedByName = names.GetValueOrDefault(version.UploadedBy, "Unknown"),
+        UploadedBy = users.Resolve(version.UploadedBy),
         UploadedOn = version.UploadedOn,
         PreviewStatus = version.PreviewStatus,
         EmbeddingStatus = version.EmbeddingStatus
     };
 
-    private static T ToListItem<T>(T dto, ProjectDocument document, ProjectDocumentAccessType level, Dictionary<string, string> names)
+    private static T ToListItem<T>(T dto, ProjectDocument document, ProjectDocumentAccessType level, Dictionary<string, UserSummaryDto> users)
         where T : ProjectDocumentListItemDto
     {
         dto.Id = document.Id;
@@ -358,7 +348,7 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
         dto.CreatedBy = Guid.Parse(document.CreatedBy);
         dto.CreatedOn = document.CreatedOn;
         dto.UpdatedOn = document.UpdatedOn;
-        dto.LatestVersion = ToVersionDto(LatestVersion(document), names);
+        dto.LatestVersion = ToVersionDto(LatestVersion(document), users);
         dto.AccessLevel = level;
         return dto;
     }

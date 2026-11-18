@@ -382,7 +382,7 @@
 										</span>
 
 										<span class="text-xs text-muted-foreground">
-											{version.uploadedByName} · {formatDate(version.uploadedOn)}
+											{version.uploadedBy.name} · {formatDate(version.uploadedOn)}
 										</span>
 
 										{#if version.note}
