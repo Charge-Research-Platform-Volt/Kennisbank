@@ -3,7 +3,6 @@
 	import { debounce } from '#lib/utils/debounce.js';
 
 	let {
-		// eslint-disable-next-line no-useless-assignment -- written to propagate to the parent via bind:, never read here
 		value = $bindable<string | null>(null),
 		displayValue = $bindable<string | null>(null),
 		search,
