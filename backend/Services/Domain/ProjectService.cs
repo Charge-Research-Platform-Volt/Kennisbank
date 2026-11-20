@@ -148,6 +148,7 @@ public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxon
             CreatedOn = x.Item.CreatedOn,
             TypeId = x.Item.TypeId,
             JournalId = x.Item.JournalId,
+            EmbeddingStatus = x.Item.EmbeddingStatus,
             AddedBy = users.Resolve(x.Relation.AddedBy),
             AddedOn = x.Relation.AddedOn
         }).ToList();
