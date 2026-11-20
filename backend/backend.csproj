@@ -19,7 +19,7 @@
     <PackageReference Include="DotNetEnv" Version="3.2.0" />
     <!-- Pinned above MimeKit's 10.0.0 for CVE-2026-84008 / CVE-2026-70162; remove once MimeKit requires >= 10.0.13 -->
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.15" />
-    <PackageReference Include="MailKit" Version="4.18.2" />
+    <PackageReference Include="MailKit" Version="5.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.15" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.15" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.15" />
