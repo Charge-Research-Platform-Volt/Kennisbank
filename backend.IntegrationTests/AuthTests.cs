@@ -89,6 +89,8 @@ public class AuthTests(KennisbankFixture fixture)
     [Theory]
     [InlineData("GET", "/dashboard/live")]
     [InlineData("GET", "/dashboard/usage")]
+    [InlineData("GET", "/dashboard/memory")]
+    [InlineData("POST", "/dashboard/memory/collect")]
     [InlineData("POST", "/admin/reembed")]
     [InlineData("POST", "/admin/reembed/cancel")]
     [InlineData("GET", "/admin/reembed/status")]
@@ -121,6 +123,24 @@ public class AuthTests(KennisbankFixture fixture)
         HttpResponseMessage response = await owner.GetAsync("/dashboard/live");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Owner_CanReadMemory_AndForceACollection()
+    {
+        HttpClient owner = await fixture.LoginAsAdminAsync();
+
+        JsonElement memory = await owner.GetFromJsonAsync<JsonElement>("/dashboard/memory");
+        Assert.True(memory.GetProperty("processBytes").GetInt64() > 0);
+        Assert.True(memory.GetProperty("gcBudgetBytes").GetInt64() > 0);
+
+        HttpResponseMessage response = await owner.PostAsync("/dashboard/memory/collect", null);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        JsonElement after = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        // The forced collection is a full one, so there is now a "still in use after the last full collection"
+        Assert.True(after.GetProperty("fullCollections").GetInt32() > memory.GetProperty("fullCollections").GetInt32());
+        Assert.True(after.GetProperty("liveAfterLastFullGcBytes").GetInt64() > 0);
     }
 
     [Fact]
