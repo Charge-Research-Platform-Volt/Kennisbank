@@ -18,6 +18,28 @@
 		safeToDeploy: boolean;
 	};
 
+	type MemoryStatus = {
+		uptimeSeconds: number;
+		processBytes: number;
+		gcCommittedBytes: number;
+		gcHeapBytes: number;
+		gcFragmentedBytes: number;
+		largeObjectHeapBytes: number;
+		liveAfterLastFullGcBytes: number | null;
+		fullCollections: number;
+		gcBudgetBytes: number;
+		serverGc: boolean;
+	};
+
+	const mib = (bytes: number) => `${Math.round(bytes / 1048576).toLocaleString()} MiB`;
+	const gib = (bytes: number) => `${(bytes / 1073741824).toFixed(1)} GiB`;
+
+	function formatUptime(seconds: number) {
+		const days = Math.floor(seconds / 86400);
+		const hours = Math.floor((seconds % 86400) / 3600);
+		return days > 0 ? `${days}d ${hours}h` : `${hours}h ${Math.floor((seconds % 3600) / 60)}m`;
+	}
+
 	type ModelFamilyStatus = {
 		name: string;
 		configured: string | null;
@@ -77,6 +99,11 @@
 		}
 	}
 
+	let memory = $state<MemoryStatus | null>(null);
+	let collecting = $state(false);
+	// Process size just before the last forced collection, to show what it freed
+	let processBeforeCollect = $state<number | null>(null);
+
 	async function fetchLive() {
 		try {
 			live = await api.get<LiveStatus>('/api/dashboard/live');
@@ -85,10 +112,32 @@
 		}
 	}
 
+	async function fetchMemory() {
+		try {
+			memory = await api.get<MemoryStatus>('/api/dashboard/memory');
+		} catch {
+			// Keep showing last known values
+		}
+	}
+
+	async function collectMemory() {
+		collecting = true;
+		try {
+			processBeforeCollect = memory?.processBytes ?? null;
+			memory = await api.post<MemoryStatus>('/api/dashboard/memory/collect');
+		} finally {
+			collecting = false;
+		}
+	}
+
 	onMount(() => {
 		fetchLive();
+		fetchMemory();
 		modelsAction(() => api.get<ModelsResponse>('/api/dashboard/models'));
-		const interval = setInterval(fetchLive, 10_000);
+		const interval = setInterval(() => {
+			fetchLive();
+			fetchMemory();
+		}, 10_000);
 		return () => clearInterval(interval);
 	});
 </script>
@@ -206,6 +255,101 @@
 							<span class="font-mono">{live.reembedRunning ? 'running' : 'idle'}</span>
 						</div>
 					</div>
+				</div>
+			{/if}
+
+			{#if memory}
+				<div class="flex flex-col gap-2 rounded-md border p-4">
+					<div class="flex items-center justify-between">
+						<span class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+							Backend memory · up {formatUptime(memory.uptimeSeconds)}
+							<InfoTip
+								text="To tell a memory leak from a lazy garbage collector. With a leak, 'Still in use after a full collection' keeps climbing over days. If only the process grows while that stays flat, the garbage collector just isn't giving memory back yet. Updates every 10 seconds."
+							/>
+						</span>
+
+						<Button
+							size="sm"
+							variant="outline"
+							disabled={collecting}
+							title="Force a full garbage collection"
+							onclick={collectMemory}
+						>
+							{collecting ? 'Collecting…' : 'Collect now'}
+						</Button>
+					</div>
+
+					<div class="flex items-center justify-between text-sm">
+						<span class="flex items-center gap-1.5"
+							>Process<InfoTip
+								text="What the server sees, the same as docker stats: the .NET heap plus everything outside it."
+							/></span
+						>
+						<span class="font-mono">{mib(memory.processBytes)}</span>
+					</div>
+
+					<div class="flex items-center justify-between text-sm">
+						<span class="flex items-center gap-1.5"
+							>Still in use after a full collection<InfoTip
+								text="What the app really holds on to. This is the number to watch over days: a leak makes it grow without stopping."
+							/></span
+						>
+						<span class="font-mono"
+							>{memory.liveAfterLastFullGcBytes === null
+								? 'no full collection yet'
+								: mib(memory.liveAfterLastFullGcBytes)}</span
+						>
+					</div>
+
+					<div class="flex items-center justify-between text-sm">
+						<span class="flex items-center gap-1.5"
+							>.NET heap (fragmented)<InfoTip
+								text="The managed heap now, including garbage not collected yet. Fragmented is free space inside it that can't be handed back until the heap is compacted."
+							/></span
+						>
+						<span class="font-mono"
+							>{mib(memory.gcHeapBytes)} ({mib(memory.gcFragmentedBytes)})</span
+						>
+					</div>
+
+					<div class="flex items-center justify-between text-sm">
+						<span class="flex items-center gap-1.5"
+							>Large object heap<InfoTip
+								text="Objects over 85 KB, such as whole files read into memory while processing. Only cleaned up by full collections."
+							/></span
+						>
+						<span class="font-mono">{mib(memory.largeObjectHeapBytes)}</span>
+					</div>
+
+					<div class="flex items-center justify-between text-sm">
+						<span class="flex items-center gap-1.5"
+							>Reserved by .NET<InfoTip
+								text="Memory .NET has taken from the OS for its heap, used or not."
+							/></span
+						>
+						<span class="font-mono">{mib(memory.gcCommittedBytes)}</span>
+					</div>
+
+					<div class="flex items-center justify-between text-sm">
+						<span class="flex items-center gap-1.5"
+							>Full collections · GC budget<InfoTip
+								text="How often a full collection has run since startup, and how much memory the garbage collector thinks it may use: the whole server unless the container has a memory limit. A big budget is why it cleans up so rarely."
+							/></span
+						>
+						<span class="font-mono"
+							>{memory.fullCollections} · {gib(memory.gcBudgetBytes)}{memory.serverGc
+								? ' (server GC)'
+								: ''}</span
+						>
+					</div>
+
+					{#if processBeforeCollect !== null}
+						<p class="text-xs text-muted-foreground">
+							Last forced collection: process went from {mib(processBeforeCollect)} to {mib(
+								memory.processBytes
+							)}. A big drop means the memory was reclaimable, not leaked.
+						</p>
+					{/if}
 				</div>
 			{/if}
 		</div>

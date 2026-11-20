@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Runtime;
 using System.Security.Claims;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
@@ -43,6 +45,67 @@ public class DashboardController(PresenceTracker presenceTracker, IBackgroundTas
             extractionJobs,
             safeToDeploy = chatStreams == 0 && pending == 0 && running == 0 && !reembedRunning && extractionJobs == 0
         });
+    }
+
+    public record MemoryStatus(
+        long UptimeSeconds,
+        // What the OS and docker stats see: the .NET heap plus everything outside it
+        long ProcessBytes,
+        long GcCommittedBytes,
+        long GcHeapBytes,
+        long GcFragmentedBytes,
+        long LargeObjectHeapBytes,
+        // What the app still held after the last full collection; null until one has run
+        long? LiveAfterLastFullGcBytes,
+        int FullCollections,
+        // How much memory the GC thinks it may use: the whole machine, unless the container has a limit
+        long GcBudgetBytes,
+        bool ServerGc);
+
+    [HttpGet("memory")]
+    [SwaggerOperation(
+        Summary = "Memory use of the backend process and its .NET heap",
+        Description = "To tell a leak from a lazy garbage collector: a leak keeps growing what is still in use after a full collection, a lazy collector only grows the process."
+    )]
+    [SwaggerResponse(200, "Memory returned")]
+    public IActionResult Memory() => Ok(GetMemoryStatus());
+
+    [HttpPost("memory/collect")]
+    [SwaggerOperation(
+        Summary = "Force a full, compacting garbage collection and return the memory afterwards",
+        Description = "Diagnostic only: pauses the app briefly. If the process shrinks a lot, the memory was reclaimable rather than leaked."
+    )]
+    [SwaggerResponse(200, "Memory after the collection")]
+    public IActionResult CollectMemory()
+    {
+        // Aggressive also compacts the large object heap and gives unused memory back to the OS
+        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+        return Ok(GetMemoryStatus());
+    }
+
+    private static MemoryStatus GetMemoryStatus()
+    {
+        using Process process = Process.GetCurrentProcess();
+        GCMemoryInfo current = GC.GetGCMemoryInfo();
+
+        // The most recent full collection, background or blocking: what survives that is what the app really holds
+        GCMemoryInfo lastFull = new[] { GC.GetGCMemoryInfo(GCKind.Background), GC.GetGCMemoryInfo(GCKind.FullBlocking) }
+            .MaxBy(info => info.Index);
+
+        // Generation 3 is the large object heap; the list is empty until the first collection
+        long largeObjectHeap = current.GenerationInfo.Length > 3 ? current.GenerationInfo[3].SizeAfterBytes : 0;
+
+        return new MemoryStatus(
+            UptimeSeconds: (long)(DateTime.Now - process.StartTime).TotalSeconds,
+            ProcessBytes: process.WorkingSet64,
+            GcCommittedBytes: current.TotalCommittedBytes,
+            GcHeapBytes: current.HeapSizeBytes,
+            GcFragmentedBytes: current.FragmentedBytes,
+            LargeObjectHeapBytes: largeObjectHeap,
+            LiveAfterLastFullGcBytes: lastFull.Index > 0 ? lastFull.HeapSizeBytes - lastFull.FragmentedBytes : null,
+            FullCollections: GC.CollectionCount(GC.MaxGeneration),
+            GcBudgetBytes: current.TotalAvailableMemoryBytes,
+            ServerGc: GCSettings.IsServerGC);
     }
 
     [HttpGet("usage")]
