@@ -16,6 +16,7 @@ namespace KnowledgeBank.Data
         {
             { "pdf",  UploadType.Document },
             { "docx", UploadType.Document },
+            { "odt",  UploadType.Document },
             { "pptx", UploadType.Document },
             { "xlsx", UploadType.Document },
             { "html", UploadType.Document },
@@ -62,6 +63,7 @@ namespace KnowledgeBank.Data
         {
             { "pdf",  "application/pdf" },
             { "docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+            { "odt",  "application/vnd.oasis.opendocument.text" },
             { "pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation" },
             { "xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
             { "html", "text/html" },

@@ -62,6 +62,7 @@ public class EmbeddingRetryService(IServiceProvider serviceProvider, ReembedRunS
     {
         DateTime now = DateTime.UtcNow;
         Guid[] resourceIds, personIds, organisationIds;
+        List<(Guid Id, bool Preview, bool Embedding)> versionRetries;
 
         using (IServiceScope scope = serviceProvider.CreateScope())
         {
@@ -85,12 +86,26 @@ public class EmbeddingRetryService(IServiceProvider serviceProvider, ReembedRunS
             resourceIds = [.. resources.Where(r => IsDue(r.EmbeddingFailures, r.EmbeddingLastAttempt, now)).Select(r => r.Id)];
             personIds = [.. persons.Where(p => IsDue(p.EmbeddingFailures, p.EmbeddingLastAttempt, now)).Select(p => p.Id)];
             organisationIds = [.. organisations.Where(o => IsDue(o.EmbeddingFailures, o.EmbeddingLastAttempt, now)).Select(o => o.Id)];
+        
+            var versions = await db.ProjectDocumentVersions
+                .Where(v => (v.EmbeddingStatus == EmbeddingStatus.Failed && v.EmbeddingFailures < MaxFailures)
+                    || (v.PreviewStatus == EmbeddingStatus.Failed && v.PreviewFailures < MaxFailures))
+                .Select(v => new { v.Id, v.EmbeddingStatus, v.EmbeddingFailures, v.EmbeddingLastAttempt, v.PreviewStatus, v.PreviewFailures, v.PreviewLastAttempt })
+                .ToListAsync(stoppingToken);
+
+            // Each step keeps its own backoff, so a due preview doesn't drag along an embedding that's still waiting
+            versionRetries = [.. versions
+                .Select(v => (
+                    v.Id,
+                    Preview: IsStepDue(v.PreviewStatus, v.PreviewFailures, v.PreviewLastAttempt, now),
+                    Embedding: IsStepDue(v.EmbeddingStatus, v.EmbeddingFailures, v.EmbeddingLastAttempt, now)
+                )).Where(v => v.Preview || v.Embedding)];
         }   
 
-        if (resourceIds.Length + personIds.Length + organisationIds.Length == 0) return;
+        if (resourceIds.Length + personIds.Length + organisationIds.Length + versionRetries.Count == 0) return;
 
-        logger.Information("Retrying failed embeddings: {Resources} resources, {Persons} persons, {Organisations} organisations",
-            resourceIds.Length, personIds.Length, organisationIds.Length);
+        logger.Information("Retrying failed embeddings: {Resources} resources, {Persons} persons, {Organisations} organisations, {Versions} project document versions",
+            resourceIds.Length, personIds.Length, organisationIds.Length, versionRetries.Count);
 
         await ConcurrencyUtils.RunBoundedAsync(resourceIds, 3, async id =>
         {
@@ -111,9 +126,23 @@ public class EmbeddingRetryService(IServiceProvider serviceProvider, ReembedRunS
             try { await scope.ServiceProvider.GetRequiredService<IngestionService>().RunOrganisationEntityPipelineAsync(id); }
             catch (Exception ex) { logger.Error(ex, "Failed to retry embedding for organisation {Id}", id); }
         }, stoppingToken);
+
+        await ConcurrencyUtils.RunBoundedAsync(versionRetries, 3, async retry =>
+        {
+            using IServiceScope scope = serviceProvider.CreateScope();
+            try { await scope.ServiceProvider.GetRequiredService<IngestionService>().RunProjectDocumentPipelineAsync(retry.Id, retry.Preview, retry.Embedding); }
+            catch (Exception ex) { logger.Error(ex, "Failed to retry project document version {Id}", retry.Id); }
+        }, stoppingToken);
     }
 
     // Never-counted failures (interrupted by a restart, or failed before the pipeline started) are due immediately
     internal static bool IsDue(int failures, DateTime? lastAttempt, DateTime now)
         => failures == 0 || lastAttempt == null || now - lastAttempt.Value >= Backoff[failures - 1];
+
+    /// <summary>
+    /// Whether one step of a multi-step item (such as a project document's preview or embedding) should be retried now.
+    /// The failure cap is checked first because <see cref="IsDue"/> has no backoff entry past it.
+    /// </summary>
+    internal static bool IsStepDue(EmbeddingStatus status, int failures, DateTime? lastAttempt, DateTime now)
+        => status == EmbeddingStatus.Failed && failures < MaxFailures && IsDue(failures, lastAttempt, now);
 }

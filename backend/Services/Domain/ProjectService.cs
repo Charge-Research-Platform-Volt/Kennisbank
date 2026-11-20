@@ -6,7 +6,9 @@ using System.Linq.Expressions;
 
 namespace KnowledgeBank.Services.Domain;
 
-public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxonomySearchIndexService)
+public readonly record struct ProjectLocation(Guid RootId, Guid? FolderId);
+
+public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxonomySearchIndexService, ProjectDocumentChunkSearchIndexService projectDocumentChunkSearchIndexService)
 {
     public const string TypeTag = "project";
 
@@ -120,12 +122,7 @@ public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxon
         var itemUserIds = rawItems
             .Where(x => x.Relation.AddedBy != null).Select(x => x.Relation.AddedBy!).ToHashSet();
 
-        Dictionary<string, string> userNames = [];
-        var allUserIds = folderUserIds.Union(itemUserIds).ToHashSet();
-        if (allUserIds.Count > 0)
-            userNames = await db.Users
-                .Where(u => allUserIds.Contains(u.Id))
-                .ToDictionaryAsync(u => u.Id, u => $"{u.FirstName} {u.LastName}");
+        Dictionary<string, UserSummaryDto> users = await db.GetUserSummariesAsync(folderUserIds.Union(itemUserIds));
 
         List<ProjectFolderDto> folders = project.ChildFolders?
             .Where(r => r.ChildFolder != null)
@@ -133,7 +130,8 @@ public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxon
             {
                 Id = r.ChildFolder!.Id,
                 Title = r.ChildFolder.Title,
-                AddedBy = r.AddedBy != null && userNames.TryGetValue(r.AddedBy, out string? n) ? n : "Unknown"
+                AddedBy = users.Resolve(r.AddedBy),
+                CreatedOn = r.ChildFolder.CreatedOn
             })
             .ToList() ?? [];
 
@@ -150,8 +148,9 @@ public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxon
             CreatedOn = x.Item.CreatedOn,
             TypeId = x.Item.TypeId,
             JournalId = x.Item.JournalId,
-            AddedBy = x.Relation.AddedBy != null && userNames.TryGetValue(x.Relation.AddedBy, out string? n)
-                ? n : "Unknown"
+            EmbeddingStatus = x.Item.EmbeddingStatus,
+            AddedBy = users.Resolve(x.Relation.AddedBy),
+            AddedOn = x.Relation.AddedOn
         }).ToList();
 
         List<ProjectAncestor> ancestors = await GetAncestorsAsync(id);
@@ -209,26 +208,50 @@ public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxon
         return ancestors;
     }
 
+    public async Task<Guid> GetRootIdAsync(Guid id)
+    {
+        List<ProjectAncestor> ancestors = await GetAncestorsAsync(id);
+        return ancestors.Count > 0 ? ancestors[0].Id : id;
+    }
+
+    /// <summary>
+    /// Where an ID points in a project tree: a root project is its own root with no folder, a folder belongs to its root.
+    /// Null when no such project exists
+    /// </summary>
+    public async Task<ProjectLocation?> ResolveLocationAsync(Guid id)
+    {
+        string? type = await db.Projects.Where(p => p.Id == id).Select(p => p.ProjectType).FirstOrDefaultAsync();
+        return type switch
+        {
+            "root" => new ProjectLocation(id, null),
+            "folder" => new ProjectLocation(await GetRootIdAsync(id), id),
+            _ => null
+        };
+    }
+
     public async Task<List<ProjectFolderDto>> GetAllFoldersAsync(Guid rootId)
     {
+        // Depth-first in tree order: every folder comes directly before its own subfolders, so the frontend can
+        // show the tree by indenting on Depth alone
         var result = new List<ProjectFolderDto>();
-        var stack = new Stack<(Guid Id, int Depth)>();
-        stack.Push((rootId, 0));
+        var stack = new Stack<(Guid Id, string Title, int Depth)>();
+        stack.Push((rootId, string.Empty, 0));
 
         while (stack.Count > 0)
         {
-            var (currentId, depth) = stack.Pop();
+            var (currentId, title, depth) = stack.Pop();
+            if (depth > 0) result.Add(new ProjectFolderDto { Id = currentId, Title = title, Depth = depth });
+
             var children = await db.ProjectFolderRelations
                 .AsNoTracking()
                 .Where(r => r.ParentId == currentId)
                 .Join(db.Projects, r => r.ChildId, p => p.Id, (r, p) => new { p.Id, p.Title })
+                // Descending onto a stack: the first folder alphabetically comes off first
+                .OrderByDescending(c => c.Title)
                 .ToListAsync();
 
             foreach (var child in children)
-            {
-                result.Add(new ProjectFolderDto { Id = child.Id, Title = child.Title, Depth = depth + 1 });
-                stack.Push((child.Id, depth + 1));
-            }
+                stack.Push((child.Id, child.Title, depth + 1));
         }
 
         return result;
@@ -357,7 +380,8 @@ public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxon
         {
             ProjectId = projectId,
             ItemId = itemId,
-            AddedBy = addedBy.ToString()
+            AddedBy = addedBy.ToString(),
+            AddedOn = DateTime.UtcNow
         });
         await db.SaveChangesAsync();
     }
@@ -373,15 +397,26 @@ public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxon
     public async Task<bool> ItemAlreadyLinkedAsync(Guid projectId, Guid itemId)
         => await db.ProjectItemRelations.AnyAsync(r => r.ProjectId == projectId && r.ItemId == itemId);
 
-    public async Task<Guid[]> GetProjectItemIdsAsync(Guid projectId)
-        => await db.ProjectItemRelations
-            .Where(r => r.ProjectId == projectId)
+    /// <summary>
+    /// All library items anywhere in a project: the root and every folder below it
+    /// </summary>
+    public async Task<Guid[]> GetTreeItemIdsAsync(Guid rootId)
+    {
+        List<Guid> projectIds = [rootId, .. (await GetAllFoldersAsync(rootId)).Select(f => f.Id)];
+        return await db.ProjectItemRelations
+            .Where(r => projectIds.Contains(r.ProjectId))
             .Select(r => r.ItemId)
+            .Distinct()
             .ToArrayAsync();
+    }
 
     public async Task<bool> DeleteAsync(Guid id)
     {
         await DeleteProjectTreeAsync(id);
+        // Postgres cascades documents, versions, access and chunks with the project row, and StorageCleanupService
+        // removes their project-docs/ files after the grace period. Only the search index needs an explicit delete
+        await projectDocumentChunkSearchIndexService.DeleteByProjectIdAsync(id);
+        
         return true;
     }
 

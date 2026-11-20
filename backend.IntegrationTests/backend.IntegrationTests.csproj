@@ -28,6 +28,7 @@
   <ItemGroup>
     <!-- Shared with the unit tests: dummy values for every environment variable -->
     <Compile Include="..\backend.Tests\Helpers\TestEnvironment.cs" Link="Helpers\TestEnvironment.cs" />
+    <Compile Include="..\backend.Tests\Helpers\TestDocuments.cs" Link="Helpers\TestDocuments.cs" />
   </ItemGroup>
 
   <ItemGroup>

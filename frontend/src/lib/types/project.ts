@@ -1,4 +1,5 @@
 import type { ResourceItem } from './resource';
+import type { UserSummary } from './user';
 
 export type Project = {
 	id: string;
@@ -29,12 +30,16 @@ export type ProjectListResponse = {
 export type ProjectFolder = {
 	id: string;
 	title: string;
-	addedBy: string;
+	/** Null in the folder tree listing */
+	addedBy: UserSummary | null;
+	createdOn: string | null;
 	depth: number;
 };
 
 export type ProjectItem = ResourceItem & {
-	addedBy: string;
+	addedBy: UserSummary;
+	/** When it was added to this project; null for links made before this was recorded */
+	addedOn: string | null;
 };
 
 export type ProjectAncestor = {

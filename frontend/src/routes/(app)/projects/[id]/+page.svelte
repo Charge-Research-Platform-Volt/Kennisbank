@@ -18,7 +18,9 @@
 		Check,
 		Pencil,
 		CirclePlus,
-		MessageSquare
+		MessageSquare,
+		Upload,
+		FilePenLine
 	} from '@lucide/svelte';
 	import type { ResourceItem } from '#lib/types/resource.js';
 	import * as Breadcrumb from '#lib/components/ui/breadcrumb/index.js';
@@ -41,6 +43,22 @@
 	import AsyncMultiSelect from '#lib/components/ui/async-multi-select.svelte';
 	import { toast } from 'svelte-sonner';
 	import type { ListItem, PagedResult } from '#lib/types/results.js';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+	import {
+		projectDocuments,
+		downloadUrl,
+		getVisibilityIcon,
+		isProcessing,
+		visibilityLabels
+	} from '#lib/project-documents.js';
+	import type { ProjectDocument } from '#lib/types/project-document.js';
+	import type { UserSummary } from '#lib/types/user.js';
+	import LastModified from '#lib/components/ui/last-modified.svelte';
+	import UploadDocumentDialog from '#lib/components/project-documents/upload-document-dialog.svelte';
+	import { isSupportedFile } from '#lib/project-documents.js';
+	import ShareDocumentDialog from '#lib/components/project-documents/share-document-dialog.svelte';
+	import MoveDocumentDialog from '#lib/components/project-documents/move-document-dialog.svelte';
+	import EditDocumentDialog from '#lib/components/project-documents/edit-document-dialog.svelte';
 
 	const openInspector: (item: ResourceItem) => void = getContext('openInspector');
 	const registerRefresh: (fn: () => void) => void = getContext('registerRefresh');
@@ -48,18 +66,97 @@
 
 	const MAX_VISIBLE_TAGS = 5;
 
+	const unknownUser: UserSummary = { id: null, name: 'Unknown', customAvatarVersion: null };
+
+	// For the row of a folder that's still being named
+	const currentUser = $derived<UserSummary>(
+		userState.user
+			? {
+					id: userState.user.id,
+					name: `${userState.user.firstName} ${userState.user.lastName}`,
+					customAvatarVersion: userState.user.customAvatarVersion
+				}
+			: unknownUser
+	);
+
 	let projectInfo = $state<ProjectInfo | null>(null);
 	let loading = $state(false);
 
+	let actionDocument = $state<ProjectDocument | null>(null);
+	let uploadOpen = $state(false);
+	let shareOpen = $state(false);
+	let moveOpen = $state(false);
+	let editDocumentOpen = $state(false);
+	let droppedFile = $state<File | null>(null);
+	let draggingFile = $state(false);
+	let uploadVersionOf = $state<ProjectDocument | null>(null);
+
+	function openUpload(file: File | null = null, versionOf: ProjectDocument | null = null) {
+		if (file && !isSupportedFile(file.name)) {
+			toast.error(
+				'Only PDF, Word (.docx) and OpenDocument text (.odt) files can be added as project documents.'
+			);
+			return;
+		}
+
+		droppedFile = file;
+		uploadVersionOf = versionOf;
+		uploadOpen = true;
+	}
+
 	let searchInput = $state('');
 
-	let filteredFolders = $derived(
-		projectInfo?.folders.filter((e) => e.title.toLowerCase().includes(searchInput.toLowerCase())) ??
-			[]
-	);
-	let filteredItems = $derived(
-		projectInfo?.items.filter((e) => e.name.toLowerCase().includes(searchInput.toLowerCase())) ?? []
-	);
+	// Case-insensitive in the user's own language; both sides must lowercase the same way
+	const matchesSearch = (text: string) =>
+		text.toLocaleLowerCase().includes(searchInput.toLocaleLowerCase());
+
+	let filteredFolders = $derived(projectInfo?.folders.filter((e) => matchesSearch(e.title)) ?? []);
+	let filteredItems = $derived(projectInfo?.items.filter((e) => matchesSearch(e.name)) ?? []);
+
+	// Project documents directly in this folder (or the root), filtered by the same search box
+	let documents = $state<ProjectDocument[]>([]);
+	let filteredDocuments = $derived(documents.filter((d) => matchesSearch(d.title)));
+
+	// Poll while the background pipeline is still converting or indexing something; stops by itself
+	let anyProcessing = $derived(documents.some((d) => isProcessing(d.latestVersion)));
+
+	$effect(() => {
+		if (!anyProcessing) return;
+		const timer = setInterval(fetchDocuments, 3000);
+		return () => clearInterval(timer);
+	});
+
+	async function fetchDocuments() {
+		const projectId = page.params.id!;
+
+		try {
+			const result = await projectDocuments.list(projectId);
+			// A slow response for the folder we just left must not overwrite this one's list
+			if (projectId === page.params.id) documents = result;
+		} catch (e) {
+			// No toast: this also runs every few seconds while polling
+			console.error('Failed to load project documents', e);
+		}
+	}
+
+	function openDocument(doc: ProjectDocument) {
+		goto(`/projects/${doc.projectId}/documents/${doc.id}`);
+	}
+
+	// The response is an attachment, so the browser downloads it without leaving the page
+	function downloadDocument(doc: ProjectDocument) {
+		window.location.href = downloadUrl(doc.id, doc.latestVersion.id);
+	}
+
+	async function deleteDocument(doc: ProjectDocument) {
+		try {
+			await projectDocuments.delete(doc.id);
+			await fetchDocuments();
+			toast.success('Successfully deleted document.');
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : 'Failed to delete document.');
+		}
+	}
 
 	let visibleTags = $derived(projectInfo?.tags.filter(Boolean).slice(0, MAX_VISIBLE_TAGS) ?? []);
 	let hiddenTagCount = $derived((projectInfo?.tags.filter(Boolean).length ?? 0) - MAX_VISIBLE_TAGS);
@@ -210,12 +307,16 @@
 		editSubmitting = true;
 
 		try {
-			await api.patch(`/api/projects/${projectInfo!.rootProject.id}`, {
+			const rootId = projectInfo!.rootProject.id;
+
+			// Three endpoints: the main PATCH only takes title and description. An empty description is sent as
+			// "" rather than null, since null means "leave unchanged" and the description couldn't be cleared
+			await api.patch(`/api/projects/${rootId}`, {
 				title: editTitle.trim(),
-				description: editDescription.trim() || null,
-				tags: editTags,
-				members: editMembers
+				description: editDescription.trim()
 			});
+			await api.patch(`/api/projects/${rootId}/tags`, editTags);
+			await api.patch(`/api/projects/${rootId}/members`, editMembers);
 
 			editOpen = false;
 			toast.success('Project updated.');
@@ -254,14 +355,30 @@
 
 	// Run on page load
 	registerRefresh(fetchProject);
-	onMount(() => fetchProject());
+	onMount(() => {
+		fetchProject();
+		fetchDocuments();
+	});
 
 	afterNavigate(({ shallow, type }) => {
 		if (shallow && type === 'goto') return;
 
+		// Clear first, so the previous folder's documents don't flash in the new one
+		documents = [];
+		fetchDocuments();
 		return fetchProject();
 	});
 </script>
+
+<!-- A file dropped next to the table must not replace the whole app with the file -->
+<svelte:window
+	ondragover={(e) => {
+		if (e.dataTransfer?.types.includes('Files')) e.preventDefault();
+	}}
+	ondrop={(e) => {
+		if (e.dataTransfer?.types.includes('Files')) e.preventDefault();
+	}}
+/>
 
 <div class="flex h-full flex-1 flex-col gap-4 overflow-hidden p-4">
 	<!-- Header -->
@@ -384,217 +501,392 @@
 		{/if}
 
 		<!-- Content -->
-		<Table.Root>
-			<Table.Header>
-				<tr class="border-b">
-					<Table.Head class="w-full">
-						<div class="flex items-center gap-4">
-							Name
-							<button
-								class="flex cursor-pointer items-center gap-1.5 text-xs font-normal text-muted-foreground hover:text-foreground"
-								onclick={() => (addingFolder = true)}
-							>
-								<FolderPlus size={13} class="shrink-0" />
-								New folder
-							</button>
-							<button
-								class="flex cursor-pointer items-center gap-1.5 text-xs font-normal text-muted-foreground hover:text-foreground"
-								onclick={() => {
-									addItemOpen = true;
-									searchItems();
-								}}
-							>
-								<Plus size={13} class="shrink-0" />
-								Add item
-							</button>
-							<button
-								class="flex cursor-pointer items-center gap-1.5 text-xs font-normal text-muted-foreground hover:text-foreground"
-								onclick={() => goto(`/new?projectId=${page.params.id}`)}
-							>
-								<CirclePlus size={13} class="shrink-0" />
-								Create item
-							</button>
-						</div>
-					</Table.Head>
-					<Table.Head class="w-px whitespace-nowrap">Added By</Table.Head>
-					<Table.Head class="w-px whitespace-nowrap" />
-				</tr>
-			</Table.Header>
+		<div
+			role="region"
+			aria-label="Folder contents"
+			class="rounded-md transition-colors {draggingFile ? 'bg-accent/50 ring-2 ring-primary' : ''}"
+			ondragenter={(e) => {
+				// Firefox only treats an element as a drop target when dragenter is cancelled too
+				if (!e.dataTransfer?.types.includes('Files')) return;
+				e.preventDefault();
+				draggingFile = true;
+			}}
+			ondragover={(e) => {
+				// Only files: dragging text or a link around the page shouldn't light up the table
+				if (!e.dataTransfer?.types.includes('Files')) return;
+				e.preventDefault();
+				draggingFile = true;
+			}}
+			ondragleave={(e) => {
+				// Moving over a child element also fires dragleave; only reset once the pointer has really left
+				if (!e.currentTarget.contains(e.relatedTarget as Node | null)) draggingFile = false;
+			}}
+			ondrop={(e) => {
+				if (!e.dataTransfer?.types.includes('Files')) return;
+				e.preventDefault();
+				draggingFile = false;
+				openUpload(e.dataTransfer.files[0] ?? null);
+			}}
+		>
+			<Table.Root>
+				<Table.Header>
+					<tr class="border-b">
+						<Table.Head class="w-full">
+							<div class="flex items-center gap-4">
+								Name
+								<button
+									class="flex cursor-pointer items-center gap-1.5 text-xs font-normal text-muted-foreground hover:text-foreground"
+									onclick={() => (addingFolder = true)}
+								>
+									<FolderPlus size={13} class="shrink-0" />
+									New folder
+								</button>
 
-			<Table.Body>
-				{#if projectInfo?.ancestors && projectInfo?.ancestors.length > 0}
-					<Table.Row
-						class="cursor-pointer"
-						onclick={() =>
-							goto(`/projects/${projectInfo?.ancestors[projectInfo?.ancestors.length - 1].id}`)}
-					>
-						<Table.Cell colspan={3} class="py-3">
-							<div class="flex items-center gap-3">
-								<FolderUp size={16} class="shrink-0 text-muted-foreground" />
-								..
-							</div>
-						</Table.Cell>
-					</Table.Row>
-				{/if}
-
-				{#if addingFolder}
-					<Table.Row class="hover:[&,&>svelte-css-wrapper]:[&>th,td]:bg-transparent">
-						<Table.Cell class="py-3">
-							<div class="flex items-center gap-3">
-								<Folder size={16} class="shrink-0 text-muted-foreground" />
-								<input
-									class="w-full bg-transparent text-sm outline-none"
-									bind:value={newFolderName}
-									placeholder="Folder name..."
-									onkeydown={(e) => {
-										if (e.key === 'Enter') confirmAddFolder();
-										else if (e.key === 'Escape') cancelAddFolder();
+								<button
+									class="flex cursor-pointer items-center gap-1.5 text-xs font-normal text-muted-foreground hover:text-foreground"
+									onclick={() => {
+										addItemOpen = true;
+										searchItems();
 									}}
-									use:autofocus
-								/>
+								>
+									<Plus size={13} class="shrink-0" />
+									Add item
+								</button>
+
+								<button
+									class="flex cursor-pointer items-center gap-1.5 text-xs font-normal text-muted-foreground hover:text-foreground"
+									onclick={() => goto(`/new?projectId=${page.params.id}`)}
+								>
+									<CirclePlus size={13} class="shrink-0" />
+									Create item
+								</button>
+
+								<button
+									class="flex cursor-pointer items-center gap-1.5 text-xs font-normal text-muted-foreground hover:text-foreground"
+									onclick={() => openUpload()}
+								>
+									<Upload size={13} class="shrink-0" />
+									Upload document
+								</button>
 							</div>
-						</Table.Cell>
-						<Table.Cell class="text-xs whitespace-nowrap text-muted-foreground">
-							{userState.user?.firstName}
-							{userState.user?.lastName}
-						</Table.Cell>
-						<Table.Cell />
-					</Table.Row>
-				{/if}
+						</Table.Head>
+						<Table.Head class="w-px text-right whitespace-nowrap">Last modified</Table.Head>
+						<Table.Head class="w-px whitespace-nowrap" />
+					</tr>
+				</Table.Header>
 
-				{#if filteredFolders.length === 0 && filteredItems.length === 0}
-					<Table.Row class="hover:[&,&>svelte-css-wrapper]:[&>th,td]:bg-transparent">
-						<Table.Cell colspan={3} class="py-12 text-center text-sm text-muted-foreground">
-							{searchInput ? 'No results found.' : 'No folders or items yet.'}
-						</Table.Cell>
-					</Table.Row>
-				{/if}
+				<Table.Body>
+					{#if projectInfo?.ancestors && projectInfo?.ancestors.length > 0}
+						<Table.Row
+							class="cursor-pointer"
+							onclick={() =>
+								goto(`/projects/${projectInfo?.ancestors[projectInfo?.ancestors.length - 1].id}`)}
+						>
+							<Table.Cell colspan={3} class="py-3">
+								<div class="flex items-center gap-3">
+									<FolderUp size={16} class="shrink-0 text-muted-foreground" />
+									..
+								</div>
+							</Table.Cell>
+						</Table.Row>
+					{/if}
 
-				<!-- Folders -->
-				{#each filteredFolders as entry (entry.id)}
-					<ContextMenu.Root>
-						<ContextMenu.Trigger>
-							{#snippet child({ props })}
-								<Table.Row
-									{...props}
-									class="cursor-pointer {props.class ?? ''}"
-									onclick={() => goto(`/projects/${entry.id}`)}
-								>
-									<Table.Cell class="py-3">
-										<div class="flex items-center gap-3">
-											<Folder size={16} class="shrink-0 text-muted-foreground" />
-											{#if renamingFolderId === entry.id}
-												<input
-													class="w-full bg-transparent text-sm outline-none"
-													bind:value={renameFolderName}
-													onkeydown={(e) => {
-														if (e.key === 'Enter') confirmRename();
-														else if (e.key === 'Escape') cancelRename();
-													}}
-													use:autofocus
-												/>
-											{:else}
-												{entry.title}
-											{/if}
-										</div>
-									</Table.Cell>
-									<Table.Cell class="text-xs whitespace-nowrap text-muted-foreground"
-										>{entry.addedBy}</Table.Cell
+					{#if addingFolder}
+						<Table.Row class="hover:[&,&>svelte-css-wrapper]:[&>th,td]:bg-transparent">
+							<Table.Cell class="py-3">
+								<div class="flex items-center gap-3">
+									<Folder size={16} class="shrink-0 text-muted-foreground" />
+									<input
+										class="w-full bg-transparent text-sm outline-none"
+										bind:value={newFolderName}
+										placeholder="Folder name..."
+										onkeydown={(e) => {
+											if (e.key === 'Enter') confirmAddFolder();
+											else if (e.key === 'Escape') cancelAddFolder();
+										}}
+										use:autofocus
+									/>
+								</div>
+							</Table.Cell>
+							<Table.Cell>
+								<LastModified date={new Date().toISOString()} user={currentUser} />
+							</Table.Cell>
+							<Table.Cell />
+						</Table.Row>
+					{/if}
+
+					{#if filteredFolders.length === 0 && filteredDocuments.length === 0 && filteredItems.length === 0}
+						<Table.Row class="hover:[&,&>svelte-css-wrapper]:[&>th,td]:bg-transparent">
+							<Table.Cell colspan={3} class="py-12 text-center text-sm text-muted-foreground">
+								{searchInput ? 'No results found.' : 'No folders, documents or items yet.'}
+							</Table.Cell>
+						</Table.Row>
+					{/if}
+
+					<!-- Folders -->
+					{#each filteredFolders as entry (entry.id)}
+						<ContextMenu.Root>
+							<ContextMenu.Trigger>
+								{#snippet child({ props })}
+									<Table.Row
+										{...props}
+										class="cursor-pointer {props.class ?? ''}"
+										onclick={() => goto(`/projects/${entry.id}`)}
 									>
-									<Table.Cell />
-								</Table.Row>
-							{/snippet}
-						</ContextMenu.Trigger>
+										<Table.Cell class="py-3">
+											<div class="flex items-center gap-3">
+												<Folder size={16} class="shrink-0 text-muted-foreground" />
+												{#if renamingFolderId === entry.id}
+													<input
+														class="w-full bg-transparent text-sm outline-none"
+														bind:value={renameFolderName}
+														onkeydown={(e) => {
+															if (e.key === 'Enter') confirmRename();
+															else if (e.key === 'Escape') cancelRename();
+														}}
+														use:autofocus
+													/>
+												{:else}
+													{entry.title}
+												{/if}
+											</div>
+										</Table.Cell>
+										<Table.Cell>
+											<LastModified
+												date={entry.createdOn}
+												user={entry.addedBy ?? unknownUser}
+												action="Created"
+											/>
+										</Table.Cell>
+										<Table.Cell />
+									</Table.Row>
+								{/snippet}
+							</ContextMenu.Trigger>
 
-						<ContextMenu.Content>
-							<ContextMenu.Item
-								onclick={() => {
-									renamingFolderId = entry.id;
-									renameFolderName = entry.title;
-								}}>Rename</ContextMenu.Item
-							>
-							<ContextMenu.Separator />
-							<ContextMenu.Item
-								class="text-destructive focus:text-destructive"
-								onclick={async () => {
-									if (await confirm(`Delete folder "${entry.title}"? This cannot be undone.`))
-										await deleteFolder(entry.id);
-								}}>Delete</ContextMenu.Item
-							>
-						</ContextMenu.Content>
-					</ContextMenu.Root>
-				{/each}
-
-				<!-- Items -->
-				{#each filteredItems as entry (entry.id)}
-					{@const Icon = getFileIcon(entry.fileType)}
-					{@const action = getFileAction(entry.fileType)}
-
-					<ContextMenu.Root>
-						<ContextMenu.Trigger>
-							{#snippet child({ props })}
-								<Table.Row
-									{...props}
-									class="cursor-pointer {props.class ?? ''}"
-									onclick={() => openInspector(entry)}
+							<ContextMenu.Content>
+								<ContextMenu.Item
+									onclick={() => {
+										renamingFolderId = entry.id;
+										renameFolderName = entry.title;
+									}}>Rename</ContextMenu.Item
 								>
-									<Table.Cell class="py-3">
-										<div class="flex items-center gap-3">
-											<Icon size={16} class="shrink-0 text-muted-foreground" />
-											{entry.name}
-										</div>
-									</Table.Cell>
-									<Table.Cell class="text-xs whitespace-nowrap text-muted-foreground"
-										>{entry.addedBy}</Table.Cell
+								<ContextMenu.Separator />
+								<ContextMenu.Item
+									class="text-destructive focus:text-destructive"
+									onclick={async () => {
+										if (
+											await confirm(
+												`Delete folder "${entry.title}"? Documents in it move to the project root. This cannot be undone.`
+											)
+										)
+											await deleteFolder(entry.id);
+									}}>Delete</ContextMenu.Item
+								>
+							</ContextMenu.Content>
+						</ContextMenu.Root>
+					{/each}
+
+					<!-- Project documents -->
+					{#each filteredDocuments as doc (doc.id)}
+						{@const VisibilityIcon = getVisibilityIcon(doc.visibility)}
+
+						<ContextMenu.Root>
+							<ContextMenu.Trigger>
+								{#snippet child({ props })}
+									<Table.Row
+										{...props}
+										class="cursor-pointer {props.class ?? ''}"
+										onclick={() => openDocument(doc)}
 									>
-									<Table.Cell class="p-3">
-										<div class="flex items-center justify-center">
-											{#if action === 'open'}
-												<button
-													class="cursor-pointer"
-													onclick={(e) => {
-														e.stopPropagation();
-														openFile(entry.id, entry.fileType, entry.sourceUrl);
-													}}
+										<Table.Cell class="py-3">
+											<div class="flex min-w-0 items-center gap-3">
+												<!-- A working document, not a library item (those use FileText) -->
+												<FilePenLine size={16} class="shrink-0 text-muted-foreground" />
+												<span class="truncate">{doc.title}</span>
+
+												<span
+													class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
 												>
-													<ExternalLink size={14} />
-												</button>
-											{:else if action === 'download'}
+													{doc.typeName}
+												</span>
+
+												<Tooltip.Root>
+													<Tooltip.Trigger>
+														<VisibilityIcon size={13} class="shrink-0 text-muted-foreground" />
+													</Tooltip.Trigger>
+
+													<Tooltip.Content>
+														<p>{visibilityLabels[doc.visibility]}</p>
+													</Tooltip.Content>
+												</Tooltip.Root>
+
+												{#if isProcessing(doc.latestVersion)}
+													<span
+														class="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground"
+													>
+														<Spinner class="h-3 w-3" />
+														Processing
+													</span>
+												{/if}
+											</div>
+										</Table.Cell>
+
+										<!-- The latest version, not updatedOn: a rename or access change isn't a change to the content -->
+										<Table.Cell>
+											<LastModified
+												date={doc.latestVersion.uploadedOn}
+												user={doc.latestVersion.uploadedBy}
+												action="Uploaded"
+											/>
+										</Table.Cell>
+
+										<Table.Cell class="p-3">
+											<div class="flex items-center justify-center">
 												<button
 													class="cursor-pointer"
 													onclick={(e) => {
 														e.stopPropagation();
-														openFile(entry.id, entry.fileType, entry.sourceUrl);
+														downloadDocument(doc);
 													}}
 												>
 													<Download size={14} />
 												</button>
-											{/if}
-										</div>
-									</Table.Cell>
-								</Table.Row>
-							{/snippet}
-						</ContextMenu.Trigger>
+											</div>
+										</Table.Cell>
+									</Table.Row>
+								{/snippet}
+							</ContextMenu.Trigger>
 
-						<ContextMenu.Content>
-							<ContextMenu.Item
-								class="cursor-pointer text-destructive focus:text-destructive"
-								onclick={async () => {
-									if (
-										await confirm(
-											`Remove "${entry.name}"? This will not delete it from the library.`
+							<ContextMenu.Content>
+								<ContextMenu.Item class="cursor-pointer" onclick={() => openDocument(doc)}
+									>Open</ContextMenu.Item
+								>
+								<ContextMenu.Item class="cursor-pointer" onclick={() => downloadDocument(doc)}
+									>Download</ContextMenu.Item
+								>
+
+								{#if doc.accessLevel === 'Editor'}
+									<ContextMenu.Separator />
+									<ContextMenu.Item
+										class="cursor-pointer"
+										onclick={() => {
+											actionDocument = doc;
+											shareOpen = true;
+										}}
+									>
+										Share
+									</ContextMenu.Item>
+									<ContextMenu.Item
+										class="cursor-pointer"
+										onclick={() => {
+											actionDocument = doc;
+											editDocumentOpen = true;
+										}}
+									>
+										Edit details
+									</ContextMenu.Item>
+									<ContextMenu.Item
+										class="cursor-pointer"
+										onclick={() => {
+											actionDocument = doc;
+											moveOpen = true;
+										}}
+									>
+										Move
+									</ContextMenu.Item>
+									<ContextMenu.Item class="cursor-pointer" onclick={() => openUpload(null, doc)}>
+										Upload new version
+									</ContextMenu.Item>
+									<ContextMenu.Separator />
+									<ContextMenu.Item
+										class="cursor-pointer text-destructive focus:text-destructive"
+										onclick={async () => {
+											if (
+												await confirm(
+													`Delete "${doc.title}" and all its versions? This cannot be undone.`
+												)
+											)
+												await deleteDocument(doc);
+										}}
+									>
+										Delete
+									</ContextMenu.Item>
+								{/if}
+							</ContextMenu.Content>
+						</ContextMenu.Root>
+					{/each}
+
+					<!-- Items -->
+					{#each filteredItems as entry (entry.id)}
+						{@const Icon = getFileIcon(entry.fileType)}
+						{@const action = getFileAction(entry.fileType)}
+
+						<ContextMenu.Root>
+							<ContextMenu.Trigger>
+								{#snippet child({ props })}
+									<Table.Row
+										{...props}
+										class="cursor-pointer {props.class ?? ''}"
+										onclick={() => openInspector(entry)}
+									>
+										<Table.Cell class="py-3">
+											<div class="flex items-center gap-3">
+												<Icon size={16} class="shrink-0 text-muted-foreground" />
+												{entry.name}
+											</div>
+										</Table.Cell>
+										<Table.Cell>
+											<LastModified date={entry.addedOn} user={entry.addedBy} />
+										</Table.Cell>
+										<Table.Cell class="p-3">
+											<div class="flex items-center justify-center">
+												{#if action === 'open'}
+													<button
+														class="cursor-pointer"
+														onclick={(e) => {
+															e.stopPropagation();
+															openFile(entry.id, entry.fileType, entry.sourceUrl);
+														}}
+													>
+														<ExternalLink size={14} />
+													</button>
+												{:else if action === 'download'}
+													<button
+														class="cursor-pointer"
+														onclick={(e) => {
+															e.stopPropagation();
+															openFile(entry.id, entry.fileType, entry.sourceUrl);
+														}}
+													>
+														<Download size={14} />
+													</button>
+												{/if}
+											</div>
+										</Table.Cell>
+									</Table.Row>
+								{/snippet}
+							</ContextMenu.Trigger>
+
+							<ContextMenu.Content>
+								<ContextMenu.Item
+									class="cursor-pointer text-destructive focus:text-destructive"
+									onclick={async () => {
+										if (
+											await confirm(
+												`Remove "${entry.name}"? This will not delete it from the library.`
+											)
 										)
-									)
-										await removeItem(entry.id);
-								}}
-							>
-								Remove
-							</ContextMenu.Item>
-						</ContextMenu.Content>
-					</ContextMenu.Root>
-				{/each}
-			</Table.Body>
-		</Table.Root>
+											await removeItem(entry.id);
+									}}
+								>
+									Remove
+								</ContextMenu.Item>
+							</ContextMenu.Content>
+						</ContextMenu.Root>
+					{/each}
+				</Table.Body>
+			</Table.Root>
+		</div>
 	{/if}
 </div>
 
@@ -713,3 +1005,24 @@
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
+
+<UploadDocumentDialog
+	bind:open={uploadOpen}
+	projectId={page.params.id!}
+	versionOf={uploadVersionOf}
+	initialFile={droppedFile}
+	onuploaded={() => fetchDocuments()}
+/>
+{#if actionDocument}
+	<ShareDocumentDialog
+		bind:open={shareOpen}
+		documentId={actionDocument.id}
+		onsaved={fetchDocuments}
+	/>
+	<MoveDocumentDialog bind:open={moveOpen} document={actionDocument} onmoved={fetchDocuments} />
+	<EditDocumentDialog
+		bind:open={editDocumentOpen}
+		document={actionDocument}
+		onsaved={fetchDocuments}
+	/>
+{/if}

@@ -105,7 +105,9 @@ public record ProjectAncestor(Guid Id, string Title);
 
 public class ProjectItem : LibraryItem
 {
-    public string AddedBy { get; set; } = "Unknown";
+    public UserSummaryDto AddedBy { get; set; } = UserSummaryDto.Unknown;
+    // When it was added to this project; null for links made before this was recorded
+    public DateTime? AddedOn { get; set; }
 }
 
 public class ProjectMemberDto
@@ -122,7 +124,9 @@ public class ProjectFolderDto
 {
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
-    public string AddedBy { get; set; } = "Unknown";
+    // Null in the folder tree listing, which only needs names and depth
+    public UserSummaryDto? AddedBy { get; set; }
+    public DateTime? CreatedOn { get; set; }
     public int Depth { get; set; }
 }
 

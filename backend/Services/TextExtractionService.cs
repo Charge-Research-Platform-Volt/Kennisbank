@@ -11,6 +11,8 @@ using KnowledgeBank.Services.Storage;
 using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Background;
 using System.Diagnostics;
+using System.IO.Compression;
+using System.Xml.Linq;
 
 namespace KnowledgeBank.Services;
 
@@ -50,6 +52,7 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
                 ".pdf" => (await ExtractWithMistralOCR(stream, fileExtension)).Text,
                 ".txt" => await ExtractFromPlainText(stream),
                 ".docx" => ExtractWithOpenXmlDocx(stream),
+                ".odt" => ExtractOdt(stream),
                 ".pptx" => ExtractWithOpenXmlPptx(stream),
                 ".xlsx" => ExtractWithClosedXmlXlsx(stream),
                 ".html" => await ExtractHtmlFileAsync(stream),
@@ -233,6 +236,67 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         }
 
         return sb.ToString();
+    }
+
+    private static readonly XNamespace OdfText = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+
+    /// <summary>
+    /// OpenDocument text (LibreOffice's own format) is a zip whose content.xml holds the text, so like .docx it's
+    /// read directly: free and exact, no conversion or OCR. One line per paragraph or heading, table cells included.
+    /// </summary>
+    internal static string ExtractOdt(Stream stream)
+    {
+        stream.Position = 0;
+        using ZipArchive zip = new(stream, ZipArchiveMode.Read, leaveOpen: true);
+        ZipArchiveEntry? entry = zip.GetEntry("content.xml");
+        if (entry == null) return string.Empty;
+
+        XDocument content;
+        using (Stream entryStream = entry.Open())
+            content = XDocument.Load(entryStream, System.Xml.Linq.LoadOptions.PreserveWhitespace);
+
+        StringBuilder sb = new();
+
+        foreach (XElement block in content.Descendants().Where(e => e.Name == OdfText + "p" || e.Name == OdfText + "h"))
+        {
+            StringBuilder line = new();
+            AppendOdtText(block, line);
+            string text = line.ToString().Trim();
+
+            if (!string.IsNullOrWhiteSpace(text))
+                sb.AppendLine(text);
+        }
+
+        return sb.ToString();
+    }
+
+    private static void AppendOdtText(XElement element, StringBuilder line)
+    {
+        foreach (XNode node in element.Nodes())
+        {
+            switch (node)
+            {
+                // Runs of whitespace in ODF text count as one space; extra spaces are written as <text:s>
+                case XText text:
+                    line.Append(Regex.Replace(text.Value, @"\s+", " "));
+                    break;
+                case XElement child when child.Name == OdfText + "s":
+                    line.Append(' ', (int?)child.Attribute(OdfText + "c") ?? 1);
+                    break;
+                case XElement child when child.Name == OdfText + "tab":
+                    line.Append('\t');
+                    break;
+                case XElement child when child.Name == OdfText + "line-break":
+                    line.Append('\n');
+                    break;
+                // A footnote's paragraphs sit inside this one; they're read as their own blocks, so skip them here
+                case XElement child when child.Name == OdfText + "note":
+                    break;
+                case XElement child:
+                    AppendOdtText(child, line);
+                    break;
+            }
+        }
     }
 
     private static string ExtractWithOpenXmlPptx(Stream stream)

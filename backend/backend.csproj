@@ -65,6 +65,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="backend.Tests" />
+    <InternalsVisibleTo Include="backend.IntegrationTests" />
   </ItemGroup>
 
 </Project>

@@ -4,10 +4,11 @@ using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using PgVector = Pgvector.Vector;
 using KnowledgeBank.Services.Search;
+using KnowledgeBank.Models.ProjectDocuments;
 
 namespace KnowledgeBank.Services.Vector;
 
-public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, EmbeddingService aiClientProvider, ChunkSearchIndexService chunkSearchIndexService, LibrarySearchIndexService librarySearchIndexService) : IVectorStore
+public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, EmbeddingService aiClientProvider, ChunkSearchIndexService chunkSearchIndexService, LibrarySearchIndexService librarySearchIndexService, ProjectDocumentChunkSearchIndexService projectDocumentChunkSearchIndexService) : IVectorStore
 {
     /// <inheritdoc/>
     public async Task ReplaceResourcePointsAsync(Guid resourceId, List<(string Text, ChunkType Type, int Part)> chunks)
@@ -193,5 +194,81 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, E
             .OrderBy(c => c.ChunkPart)
             .Select(c => c.ChunkText)
             .ToListAsync();
+    }
+
+        /// <inheritdoc />
+    public async Task<bool> ReplaceProjectDocumentPointsAsync(Guid documentId, Guid versionId, List<(string Text, int Part)> chunks)
+    {
+        // Embed outside transaction
+        float[][] embeddings = await aiClientProvider.GenerateEmbeddings(chunks.Select(c => c.Text).ToList());
+
+        await using var database = await dbFactory.CreateDbContextAsync();
+        await using var transaction = await database.Database.BeginTransactionAsync();
+
+        // The row lock serialises swaps per document, so a slow older version can't overwrite a newer one's chunks.
+        // Adding a version also updates this row, so it waits for us (or we see its commited version below).
+        ProjectDocument? document = await database.ProjectDocuments
+            .FromSql($"SELECT * FROM \"project-documents\" WHERE id = {documentId} FOR UPDATE")
+            .AsNoTracking()
+            .FirstOrDefaultAsync();
+
+        if (document == null) return false;
+
+        Guid latestId = await database.ProjectDocumentVersions
+            .Where(v => v.DocumentId == documentId)
+            .OrderByDescending(v => v.VersionNumber)
+            .Select(v => v.Id)
+            .FirstOrDefaultAsync();
+
+        if (latestId != versionId) return false;
+
+        List<ProjectDocumentChunkDocument> searchDocs = [];
+
+        for (int i = 0; i < chunks.Count; i++)
+        {
+            var (Text, Part) = chunks[i];
+
+            ProjectDocumentChunk documentChunk = new()
+            {
+                Id = Guid.NewGuid(),
+                DocumentId = documentId,
+                VersionId = versionId,
+                ChunkPart = Part,
+                ChunkText = Text,
+                Embedding = new PgVector(embeddings[i]),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            database.ProjectDocumentChunks.Add(documentChunk);
+            searchDocs.Add(new ProjectDocumentChunkDocument
+            {
+                Id = documentChunk.Id.ToString(),
+                DocumentId = documentId.ToString(),
+                ProjectId = document.ProjectId.ToString(),
+                VersionId = versionId.ToString(),
+                ChunkPart = Part,
+                ChunkText = Text,
+                Vectors = new() { ["default"] = embeddings[i] }
+            });
+        }
+
+        await database.ProjectDocumentChunks.Where(c => c.DocumentId == documentId).ExecuteDeleteAsync();
+        await database.SaveChangesAsync();
+
+        // Queued while holding the lock, so Meilisearch receives the swaps in the same order as Postgres
+        // (it processes one index's tasks in order). If this throws, the transaction rolls back.
+        await projectDocumentChunkSearchIndexService.DeleteByDocumentIdAsync(documentId);
+        await projectDocumentChunkSearchIndexService.IndexChunksAsync(searchDocs);
+
+        await transaction.CommitAsync();
+        return true;
+    }
+
+    /// <inheritdoc />
+    public async Task DeletePointsByProjectDocumentIdAsync(Guid documentId)
+    {
+        await using var database = await dbFactory.CreateDbContextAsync();
+        await database.ProjectDocumentChunks.Where(c => c.DocumentId == documentId).ExecuteDeleteAsync();
+        await projectDocumentChunkSearchIndexService.DeleteByDocumentIdAsync(documentId);
     }
 }

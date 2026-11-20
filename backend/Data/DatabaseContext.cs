@@ -1,6 +1,7 @@
 using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using KnowledgeBank.Models.ProjectDocuments;
 
 namespace KnowledgeBank.Data
 {
@@ -36,6 +37,11 @@ namespace KnowledgeBank.Data
         public DbSet<ProjectTagRelation> ProjectTagRelations { get; set; }
         public DbSet<ProjectItemRelation> ProjectItemRelations { get; set; }
         public DbSet<ProjectMemberRelation> ProjectMemberRelations { get; set; }
+        public DbSet<ProjectDocument> ProjectDocuments { get; set; }
+        public DbSet<ProjectDocumentType> ProjectDocumentTypes { get; set; }
+        public DbSet<ProjectDocumentVersion> ProjectDocumentVersions { get; set; }
+        public DbSet<ProjectDocumentAccess> ProjectDocumentAccess { get; set; }
+        public DbSet<ProjectDocumentChunk> ProjectDocumentChunks { get; set; }
         
         
         public DbSet<LibraryItem> LibraryItems { get; set; }
@@ -254,6 +260,93 @@ namespace KnowledgeBank.Data
                 .WithMany(f => f.ParentFolders)
                 .HasForeignKey(pfr => pfr.ChildId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Project documents
+            modelBuilder.Entity<ProjectDocument>(entity =>
+            {
+                entity.Property(d => d.Visibility).HasConversion<string>();
+                entity.Property(d => d.Source).HasConversion<string>();
+                entity.Property(d => d.GeneralAccessType).HasConversion<string>();
+
+                // A type that is in use can't be deleted
+                entity.HasOne(d => d.Type)
+                    .WithMany(t => t.Documents)
+                    .HasForeignKey(d => d.TypeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Database-level cascade, ProjectService deletes projects with ExecuteDeleteAsync
+                entity.HasOne(d => d.Project)
+                    .WithMany()
+                    .HasForeignKey(d => d.ProjectId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Deleting a folder never deletes documents: they move to the project root, like Drive does
+                // with content you can't access. Database-level, since folders are deleted with ExecuteDeleteAsync
+                entity.HasOne(d => d.Folder)
+                    .WithMany()
+                    .HasForeignKey(d => d.FolderId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                // Lists are always per root and location; queries on only ProjectId use it too
+                entity.HasIndex(d => new { d.ProjectId, d.FolderId });
+            });
+
+            modelBuilder.Entity<ProjectDocumentVersion>(entity =>
+            {
+                entity.Property(v => v.PreviewStatus).HasConversion<string>();
+                entity.Property(v => v.EmbeddingStatus).HasConversion<string>();
+
+                entity.HasOne(v => v.Document)
+                    .WithMany(d => d.Versions)
+                    .HasForeignKey(v => v.DocumentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(v => new { v.DocumentId, v.VersionNumber }).IsUnique();
+            });
+
+            modelBuilder.Entity<ProjectDocumentAccess>(entity =>
+            {
+                entity.HasKey(a => new { a.DocumentId, a.UserId });
+                entity.Property(a => a.AccessType).HasConversion<string>();
+
+                entity.HasOne(a => a.Document)
+                    .WithMany(d => d.Access)
+                    .HasForeignKey(a => a.DocumentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(a => a.User)
+                    .WithMany()
+                    .HasForeignKey(a => a.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(a => a.UserId);
+            });
+
+            modelBuilder.Entity<ProjectDocumentChunk>(entity =>
+            {
+                // Database-level cascade, so deleting a document or its project also removes the chunks
+                entity.HasOne(c => c.Document)
+                    .WithMany()
+                    .HasForeignKey(c => c.DocumentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(c => c.Embedding)
+                    .HasColumnType("vector(1024)");
+
+                entity.HasIndex(c => c.DocumentId);
+            });
+
+            // One-time seed of the built-in types. Don't edit or remove these lines: EF turns that into an
+            // UpdateData/DeleteData in the next migration, which overwrites renames done in the app.
+            DateTime seededOn = new(2026, 10, 29, 0, 0, 0, DateTimeKind.Utc);
+            modelBuilder.Entity<ProjectDocumentType>().HasData(
+                new ProjectDocumentType { Id = Guid.Parse("8c4f36d0-0c30-48c6-a073-816a7bfa87d0"), Name = "Project plan", CreatedOn = seededOn },
+                new ProjectDocumentType { Id = Guid.Parse("7e1fbccd-5af9-4270-8133-0191eae9203d"), Name = "Draft research report", CreatedOn = seededOn },
+                new ProjectDocumentType { Id = Guid.Parse("9b3eeb99-8bb2-4d92-9b54-aa27f6e20657"), Name = "Minutes", CreatedOn = seededOn },
+                new ProjectDocumentType { Id = Guid.Parse("ea01f3cd-4cbe-43cf-bd39-3bb5ba5f26f8"), Name = "Evaluation", CreatedOn = seededOn },
+                // Added later (AddOtherProjectDocumentType), so a document that fits none of the above isn't misfiled
+                new ProjectDocumentType { Id = Guid.Parse("61d50652-f25f-4cf6-9263-529b501d4086"), Name = "Other", CreatedOn = new(2026, 11, 18, 0, 0, 0, DateTimeKind.Utc) }
+            );
 
             // Trash view
             modelBuilder.Entity<TrashItem>(entity =>

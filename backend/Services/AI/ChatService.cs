@@ -1,19 +1,32 @@
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.AI;
 
-public class ChatService(DatabaseContext db)
+public class ChatService(DatabaseContext db, ProjectService projectService)
 {
-    public async Task<Dictionary<DateTime, Chats[]>> GetChatsGroupedByDateAsync(Guid userId, Guid? projectId)
-        => (await db.Chats
-            .Where(c => c.UserId == userId && c.ProjectId == projectId)
+    /// <summary>
+    /// A project's chats live on its root, so the same history shows on every folder page. Null when the project doesn't exist
+    /// </summary>
+    public async Task<Dictionary<DateTime, Chats[]>?> GetChatsGroupedByDateAsync(Guid userId, Guid? projectId)
+    {
+        Guid? rootId = null;
+        if (projectId is Guid id)
+        {
+            if (await projectService.ResolveLocationAsync(id) is not { } location) return null;
+            rootId = location.RootId;
+        }
+
+        return (await db.Chats
+            .Where(c => c.UserId == userId && c.ProjectId == rootId)
             .OrderByDescending(c => c.CreatedOn)
             .ToArrayAsync())
             .GroupBy(c => c.CreatedOn.Date)
             .OrderByDescending(g => g.Key)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(c => c.CreatedOn).ToArray());
+    }
 
     public async Task<Chats?> GetByIdAsync(Guid id)
         => await db.Chats.FirstOrDefaultAsync(c => c.Id == id);
@@ -65,6 +78,12 @@ public class ChatService(DatabaseContext db)
 
     public async Task<Guid> CreateChatAsync(ChatsCreateDto dto)
     {
+        // Started from a folder page or not, a project chat belongs in the root
+        Guid? rootId = null;
+        if (dto.ProjectId is Guid projectId)
+            rootId = (await projectService.ResolveLocationAsync(projectId)
+                ?? throw new ArgumentException("Project not found.", nameof(dto))).RootId;
+
         var id = Guid.NewGuid();
         await db.Chats.AddAsync(new Chats
         {
@@ -72,7 +91,7 @@ public class ChatService(DatabaseContext db)
             UserId = dto.UserId,
             Title = dto.Title,
             CreatedOn = DateTime.UtcNow,
-            ProjectId = dto.ProjectId
+            ProjectId = rootId
         });
         await db.SaveChangesAsync();
         return id;

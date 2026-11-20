@@ -7,15 +7,18 @@ using KnowledgeBank.Models;
 using KnowledgeBank.Services.Domain;
 using KnowledgeBank.Services.Search;
 using Microsoft.AspNetCore.SignalR;
+using KnowledgeBank.Models.Chat;
+using KnowledgeBank.Models.ProjectDocuments;
 
 namespace KnowledgeBank.Services.AI;
 
 public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingService, AttachmentChunkSearchIndexService attachmentChunkSearchIndexService, IServiceScopeFactory scopeFactory, IHubContext<AppHub, IAppHubClient> hubContext, UsageMetrics usageMetrics)
 {
     private const float RelevanceThreshold = 0.25f;
+    private const int MaxReadDocumentChars = 32_000;
     private readonly Serilog.ILogger logger = Serilog.Log.ForContext<ChatToolExecutor>();
 
-    public async Task<string> ExecuteAsync(MistralToolCall toolCall, string userQuestion, string? projectId, Guid chatId, string connectionId, CancellationToken cancellationToken)
+    public async Task<string> ExecuteAsync(MistralToolCall toolCall, string userQuestion, ChatToolContext context, CancellationToken cancellationToken)
     {
         // Tool names come from the model, so unknown ones share one metric instead of each creating their own
         string metric = ChatToolDefinitions.All.Any(t => t.Name == toolCall.Name) ? $"chat.tool.{toolCall.Name}" : "chat.tool.unknown";
@@ -31,32 +34,43 @@ public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingSer
                 "search_library" => await HandleSearchAsync(
                     scope.ServiceProvider.GetRequiredService<LibraryService>(),
                     scope.ServiceProvider.GetRequiredService<ProjectService>(),
-                    args, userQuestion, projectId, connectionId, cancellationToken),
+                    args, userQuestion, context.ProjectId, context.ConnectionId, cancellationToken),
                 "get_item_details" => await HandleGetItemDetailsAsync(
                     scope.ServiceProvider.GetRequiredService<ResourceService>(),
                     scope.ServiceProvider.GetRequiredService<PersonService>(),
                     scope.ServiceProvider.GetRequiredService<OrganisationService>(),
-                    args, connectionId, cancellationToken),
+                    args, context.ConnectionId, cancellationToken),
                 "find_related_items" => await HandleFindRelatedItemsAsync(
                     scope.ServiceProvider.GetRequiredService<ResourceService>(),
                     scope.ServiceProvider.GetRequiredService<PersonService>(),
                     scope.ServiceProvider.GetRequiredService<OrganisationService>(),
-                    args, connectionId, cancellationToken),
+                    args, context.ConnectionId, cancellationToken),
                 "search_item_content" => await HandleSearchItemContentAsync(
                     scope.ServiceProvider.GetRequiredService<LibraryService>(),
-                    args, connectionId, cancellationToken),
+                    args, context.ConnectionId, cancellationToken),
                 "browse_library" => await HandleBrowseLibraryAsync(
                     scope.ServiceProvider.GetRequiredService<LibraryService>(),
                     scope.ServiceProvider.GetRequiredService<TaxonomySearchIndexService>(),
                     scope.ServiceProvider.GetRequiredService<ProjectService>(),
-                    args, projectId, connectionId, cancellationToken),
+                    args, context.ProjectId, context.ConnectionId, cancellationToken),
                 "find_similar_resources" => await HandleFindSimilarResourcesAsync(
                     scope.ServiceProvider.GetRequiredService<ChunkSearchIndexService>(),
                     scope.ServiceProvider.GetRequiredService<ResourceService>(),
-                    args, connectionId, cancellationToken),
+                    args, context.ConnectionId, cancellationToken),
                 "search_attachment_content" => await HandleSearchAttachmentContentAsync(
                     scope.ServiceProvider.GetRequiredService<ChatService>(),
-                    args, chatId, connectionId, cancellationToken),
+                    args, context.ChatId, context.ConnectionId, cancellationToken),
+                "list_project_documents" => await HandleListProjectDocumentsAsync(
+                    scope.ServiceProvider.GetRequiredService<ProjectDocumentService>(),
+                    scope.ServiceProvider.GetRequiredService<ProjectService>(),
+                    context),
+                "search_project_documents" => await HandleSearchProjectDocumentsAsync(
+                    scope.ServiceProvider.GetRequiredService<ProjectDocumentService>(),
+                    scope.ServiceProvider.GetRequiredService<ProjectDocumentChunkSearchIndexService>(),
+                    args, context),
+                "read_project_document" => await HandleReadProjectDocumentAsync(
+                    scope.ServiceProvider.GetRequiredService<ProjectDocumentService>(),
+                    args, context),
                 _ => "Error: unknown tool"
             };
 
@@ -102,17 +116,18 @@ public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingSer
         return sb.ToString();
     }
 
-    private async Task<string> HandleSearchAsync(LibraryService libraryService, ProjectService projectService, JsonDocument args, string userQuestion, string? projectId, string connectionId, CancellationToken ct)
+    private async Task<string> HandleSearchAsync(LibraryService libraryService, ProjectService projectService, JsonDocument args, string userQuestion, Guid? rootId, string connectionId, CancellationToken ct)
     {
         string query = args.RootElement.GetProperty("query").GetString() ?? userQuestion;
         string? typeFilter = args.RootElement.TryGetProperty("type", out var t) ? t.GetString() : null;
         int limit = args.RootElement.TryGetProperty("limit", out var l) ? Math.Clamp(l.GetInt32(), 1, 30) : 15;
 
         Guid[]? idsFilter = null;
-        if (projectId != null && Guid.TryParse(projectId, out var projGuid))
+        if (rootId is Guid id)
         {
-            Guid[] ids = await projectService.GetProjectItemIdsAsync(projGuid);
-            if (ids.Length > 0) idsFilter = ids;
+            idsFilter = await projectService.GetTreeItemIdsAsync(id);
+            // No filter means the whole library to the search, which a project chat must never see
+            if (idsFilter.Length == 0) return "This project has no library items yet.";
         }
 
         logger.Debug("LLM searching for: {Query} (type={Type}, limit={Limit})", query, typeFilter ?? "any", limit);
@@ -124,7 +139,7 @@ public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingSer
         return formatted;
     }
 
-    private async Task<string> HandleBrowseLibraryAsync(LibraryService libraryService, TaxonomySearchIndexService taxonomySearchIndexService, ProjectService projectService, JsonDocument args, string? projectId, string connectionId, CancellationToken ct)
+    private async Task<string> HandleBrowseLibraryAsync(LibraryService libraryService, TaxonomySearchIndexService taxonomySearchIndexService, ProjectService projectService, JsonDocument args, Guid? rootId, string connectionId, CancellationToken ct)
     {
         string[] tagNames = GetStringArray(args, "tagNames");
         string[] regionNames = GetStringArray(args, "regionNames");
@@ -214,9 +229,9 @@ public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingSer
         LibraryResult result = await libraryService.GetLibraryAsync(request);
         IEnumerable<LibraryItem> items = result.Items;
 
-        if (projectId != null && Guid.TryParse(projectId, out var projGuid))
+        if (rootId is Guid id)
         {
-            Guid[] projectItemIds = await projectService.GetProjectItemIdsAsync(projGuid);
+            Guid[] projectItemIds = await projectService.GetTreeItemIdsAsync(id);
             HashSet<Guid> allowed = [.. projectItemIds];
             items = items.Where(i => allowed.Contains(i.Id));
         }
@@ -454,6 +469,100 @@ public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingSer
         List<string> matches = await attachmentChunkSearchIndexService.SearchAsync(query, queryEmbedding, attachmentId);
 
         return matches.Count == 0 ? "No relevant sections found for that query." : $"{citeLine}\n\n{string.Join("\n---\n", matches)}";
+    }
+
+    /// <summary>
+    /// What this chat may use: only in a project chat, and only what the user can open in the app
+    /// </summary>
+    private static async Task<List<ProjectDocumentListItemDto>> GetViewableDocumentsAsync(ProjectDocumentService documentService, ChatToolContext context)
+        => context.ProjectId is Guid rootId ? await documentService.ListAllAsync(rootId, context.UserId, context.IsOwner) : [];
+
+    private async Task<string> HandleListProjectDocumentsAsync(ProjectDocumentService documentService, ProjectService projectService, ChatToolContext context)
+    {
+        await hubContext.Clients.Client(context.ConnectionId).ChatToolStatus("list_project_documents", "Listing project documents...");
+
+        List<ProjectDocumentListItemDto> documents = await GetViewableDocumentsAsync(documentService, context);
+        if (documents.Count == 0) return "This project has no documents you can access.";
+
+        Dictionary<Guid, string> folders = (await projectService.GetAllFoldersAsync(context.ProjectId!.Value)).ToDictionary(f => f.Id, f => f.Title);
+
+        StringBuilder sb = new();
+        foreach (ProjectDocumentListItemDto document in documents.OrderByDescending(d => d.LatestVersion.UploadedOn))
+        {
+            ProjectDocumentVersionDto latest = document.LatestVersion;
+            sb.AppendLine($"{document.Title} ({document.TypeName})");
+            sb.AppendLine($"Cite as: [DOC:{document.Id}]");
+            sb.AppendLine($"Folder: {(document.FolderId is Guid folderId && folders.TryGetValue(folderId, out string? folder) ? folder : "project root")}");
+            sb.AppendLine($"Latest version: {latest.VersionNumber}, uploaded {latest.UploadedOn:yyyy-MM-dd} by {latest.UploadedBy.Name}");
+            if (latest.EmbeddingStatus != EmbeddingStatus.Completed)
+                sb.AppendLine("Content: not searchable yet (still processing, or processing failed)");
+            sb.AppendLine();
+        }
+
+        return sb.ToString();
+    }
+
+    private async Task<string> HandleSearchProjectDocumentsAsync(ProjectDocumentService documentService, ProjectDocumentChunkSearchIndexService searchIndex, JsonDocument args, ChatToolContext context)
+    {
+        string query = args.RootElement.TryGetProperty("query", out var q) ? q.GetString() ?? "" : "";
+        if (string.IsNullOrWhiteSpace(query)) return "Error: query is required";
+
+        List<ProjectDocumentListItemDto> documents = await GetViewableDocumentsAsync(documentService, context);
+
+        // Narrowing only ever narrows: an id the user can't open matches nothing
+        if (args.RootElement.TryGetProperty("documentId", out var idProp) && idProp.ValueKind == JsonValueKind.String)
+        {
+            if (!Guid.TryParse(idProp.GetString(), out Guid documentId)) return "Error: invalid documentId";
+            documents = [.. documents.Where(d => d.Id == documentId)];
+        }
+
+        // No documents means nothing to search, never an unfiltered search
+        if (documents.Count == 0) return "No project documents you can access match that.";
+
+        await hubContext.Clients.Client(context.ConnectionId).ChatToolStatus("search_project_documents", $"Searching project documents: {query}");
+
+        float[] queryEmbedding = await embeddingService.GenerateEmbedding(query);
+        List<ProjectDocumentChunkDocument> hits = await searchIndex.SearchAsync(query, queryEmbedding, [.. documents.Select(d => d.Id)]);
+        if (hits.Count == 0) return "No relevant sections found in the project documents.";
+
+        Dictionary<Guid, ProjectDocumentListItemDto> byId = documents.ToDictionary(d => d.Id);
+        StringBuilder sb = new();
+        foreach (var group in hits.GroupBy(h => Guid.Parse(h.DocumentId)))
+        {
+            ProjectDocumentListItemDto document = byId[group.Key];
+            sb.AppendLine($"{document.Title} ({document.TypeName}, version {document.LatestVersion.VersionNumber})");
+            sb.AppendLine($"Cite as: [DOC:{document.Id}]");
+            foreach (ProjectDocumentChunkDocument hit in group.OrderBy(h => h.ChunkPart))
+                sb.AppendLine($"---\n{hit.ChunkText}");
+            sb.AppendLine();
+        }
+
+        return sb.ToString();
+    }
+
+    private async Task<string> HandleReadProjectDocumentAsync(ProjectDocumentService documentService, JsonDocument args, ChatToolContext context)
+    {
+        if (!args.RootElement.TryGetProperty("documentId", out var idProp) || !Guid.TryParse(idProp.GetString(), out Guid documentId))
+            return "Error: invalid or missing documentId";
+
+        // The same check as opening it in the app, and only for documents of this chat's own project
+        ProjectDocument? document = await documentService.GetAsync(documentId);
+        if (document == null || document.ProjectId != context.ProjectId)
+            return "Error: document not found in this project";
+
+        bool isMember = await documentService.IsMemberAsync(document.ProjectId, context.UserId);
+        if (ProjectDocumentService.GetAccessLevel(document, context.UserId, isMember, context.IsOwner) == null)
+            return "Error: document not found in this project";
+
+        await hubContext.Clients.Client(context.ConnectionId).ChatToolStatus("read_project_document", $"Reading {document.Title}");
+
+        ProjectDocumentVersion latest = document.Versions!.MaxBy(v => v.VersionNumber)!;
+        if (string.IsNullOrWhiteSpace(latest.ExtractedText))
+            return "This document's text isn't available yet (still processing, or processing failed)";
+        if (latest.ExtractedText.Length > MaxReadDocumentChars)
+            return $"This document is too long to read in full. Use search_project_documents with documentId \"{document.Id}\" to find the relevant sections";
+
+        return $"{document.Title} (version {latest.VersionNumber})\nCite as: [DOC:{document.Id}]\n\n{latest.ExtractedText}";
     }
 
     internal static string[] GetStringArray(JsonDocument args, string propertyName)

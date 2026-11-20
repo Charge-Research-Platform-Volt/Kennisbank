@@ -1,0 +1,47 @@
+using System.IO.Compression;
+using System.Text;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
+
+namespace KnowledgeBank.Tests.Helpers;
+
+/// <summary>Small real documents built in code, so tests don't depend on binary fixture files.</summary>
+public static class TestDocuments
+{
+    /// <summary>A minimal OpenDocument text file: the zip with a content.xml around <paramref name="body"/>.</summary>
+    public static byte[] Odt(string body)
+    {
+        string xml = $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <office:document-content
+                xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+                xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+                xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0">
+              <office:body><office:text>{body}</office:text></office:body>
+            </office:document-content>
+            """;
+
+        using MemoryStream stream = new();
+        using (ZipArchive zip = new(stream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            using (StreamWriter mimetype = new(zip.CreateEntry("mimetype").Open()))
+                mimetype.Write("application/vnd.oasis.opendocument.text");
+            using (StreamWriter content = new(zip.CreateEntry("content.xml").Open(), Encoding.UTF8))
+                content.Write(xml);
+        }
+        return stream.ToArray();
+    }
+
+    /// <summary>A minimal Word document with one paragraph per string.</summary>
+    public static byte[] Docx(params string[] paragraphs)
+    {
+        using MemoryStream stream = new();
+        using (WordprocessingDocument document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document))
+        {
+            MainDocumentPart main = document.AddMainDocumentPart();
+            main.Document = new Document(new Body(paragraphs.Select(p => new Paragraph(new Run(new Text(p))))));
+        }
+        return stream.ToArray();
+    }
+}

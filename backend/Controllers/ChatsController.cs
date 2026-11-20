@@ -18,7 +18,8 @@ public class ChatsController(ChatService chatService, MessageAttachmentService m
     public async Task<IActionResult> GetAll([FromQuery] Guid? projectId)
     {
         Guid userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        return Ok(await chatService.GetChatsGroupedByDateAsync(userId, projectId));
+        var chats = await chatService.GetChatsGroupedByDateAsync(userId, projectId);
+        return chats == null ? NotFound() : Ok(chats);
     }
 
     [HttpPatch("{id}/title")]

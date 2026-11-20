@@ -24,6 +24,7 @@ using Npgsql;
 using KnowledgeBank.Services.Domain;
 using Meilisearch;
 using System.Security.Claims;
+using KnowledgeBank.Models.ProjectDocuments;
 
 namespace KnowledgeBank
 {
@@ -169,6 +170,8 @@ namespace KnowledgeBank
             builder.Services.AddScoped<ResourceService>();
             builder.Services.AddScoped<LibraryService>();
             builder.Services.AddScoped<ProjectService>();
+            builder.Services.AddScoped<ProjectDocumentService>();
+            builder.Services.AddScoped<ProjectDocumentTypeService>();
             builder.Services.AddScoped<ChatService>();
             builder.Services.AddScoped<MessageAttachmentService>();
             builder.Services.AddScoped<ChatOrchestrationService>();
@@ -196,6 +199,7 @@ namespace KnowledgeBank
             builder.Services.AddScoped<ChunkSearchIndexService>();
             builder.Services.AddScoped<TaxonomySearchIndexService>();
             builder.Services.AddScoped<AttachmentChunkSearchIndexService>();
+            builder.Services.AddScoped<ProjectDocumentChunkSearchIndexService>();
 
             // Background services
             builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
@@ -246,6 +250,9 @@ namespace KnowledgeBank
 
             // Webscrape service client
             builder.Services.AddSingleton<WebscrapeClient>();
+
+            // Document conversion client
+            builder.Services.AddSingleton<DocumentConversionService>();
 
             // VPN Service
             builder.Services.AddSingleton<VPNService>();
@@ -352,6 +359,20 @@ namespace KnowledgeBank
                         .SetProperty(e => e.EmbeddingStatus, EmbeddingStatus.Failed)
                         .SetProperty(e => e.EmbeddingError, interruptedMessage));
 
+                int interruptedVersions = await db.ProjectDocumentVersions
+                    .Where(v => v.EmbeddingStatus == EmbeddingStatus.Pending || v.EmbeddingStatus == EmbeddingStatus.Processing)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(v => v.EmbeddingStatus, EmbeddingStatus.Failed)
+                        .SetProperty(v => v.EmbeddingError, interruptedMessage));
+
+                // No failure is counted, so the retry service picks these up on its first pass
+                int interruptedPreviews = await db.ProjectDocumentVersions
+                    .Where(v => v.PreviewStatus == EmbeddingStatus.Pending || v.PreviewStatus == EmbeddingStatus.Processing)
+                    .ExecuteUpdateAsync(s => s.SetProperty(v => v.PreviewStatus, EmbeddingStatus.Failed));
+
+                if (interruptedVersions + interruptedPreviews > 0)
+                    Log.Warning("Marked {Embeddings} project document embeddings and {Previews} previews as failed after an interrupted run", interruptedVersions, interruptedPreviews);
+
                 if (interruptedResources + interruptedEntities > 0)
                     Log.Warning("Marked {Resources} resources and {Entities} entities as failed after an interrupted embedding run", interruptedResources, interruptedEntities);
 
@@ -359,12 +380,14 @@ namespace KnowledgeBank
                 var chunkSearchIndexService = scope.ServiceProvider.GetRequiredService<ChunkSearchIndexService>();
                 var taxonomySearchIndexService = scope.ServiceProvider.GetRequiredService<TaxonomySearchIndexService>();
                 var attachmentChunkSearchIndexService = scope.ServiceProvider.GetRequiredService<AttachmentChunkSearchIndexService>();
+                var projectDocumentChunkSearchIndexService = scope.ServiceProvider.GetRequiredService<ProjectDocumentChunkSearchIndexService>();
 
                 await Task.WhenAll(
                     librarySearchIndexService.EnsureIndexConfiguredAsync(),
                     chunkSearchIndexService.EnsureIndexConfiguredAsync(),
                     taxonomySearchIndexService.EnsureIndexConfiguredAsync(),
-                    attachmentChunkSearchIndexService.EnsureIndexConfiguredAsync()
+                    attachmentChunkSearchIndexService.EnsureIndexConfiguredAsync(),
+                    projectDocumentChunkSearchIndexService.EnsureIndexConfiguredAsync()
                 );
             }
 

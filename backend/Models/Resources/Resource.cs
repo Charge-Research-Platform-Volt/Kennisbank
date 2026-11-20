@@ -164,10 +164,18 @@ public class ResourceUpdateDto
     public string? SourceUrl { get; set; }
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum UploadPurpose
+{
+    Library,
+    ProjectDocument
+}
+
 public class FileUploadInitDto
 {
     public required string FileName { get; set; }
     public required long FileSize { get; set; }
+    public UploadPurpose Purpose { get; set; } = UploadPurpose.Library;
 }
 
 public class FileUploadFinalizeDto
@@ -175,6 +183,7 @@ public class FileUploadFinalizeDto
     public required string ObjectName { get; set; }
     public required string UploadId { get; set; }
     public required IDictionary<int, string> PartETags { get; set; }
+    public UploadPurpose Purpose { get; set; } = UploadPurpose.Library;
 }
 
 public class ResourceDetailDto

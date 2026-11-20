@@ -36,4 +36,15 @@ public interface IVectorStore
     /// Get the stored text of a resource's content chunks, in document order
     /// </summary>
     Task<List<string>> GetContentChunkTextsAsync(Guid resourceId);
+
+    /// <summary>
+    /// Replaces a document's chunks with those of the given version, but only while that version is still the
+    /// document's latest. Returns false (and changes nothing) when a newer version exists or the document is gone.
+    /// </summary>
+    Task<bool> ReplaceProjectDocumentPointsAsync(Guid documentId, Guid versionId, List<(string Text, int Part)> chunks);
+
+    /// <summary>
+    /// Delete all chunks for a project document
+    /// </summary>
+    Task DeletePointsByProjectDocumentIdAsync(Guid documentId);
 }
