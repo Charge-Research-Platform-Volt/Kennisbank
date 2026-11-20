@@ -42,7 +42,7 @@
 
 <div class="mx-auto grid h-full max-w-5xl grid-cols-2 gap-10 p-8">
 	<!-- Form -->
-	<div class="flex min-h-0 flex-col gap-4">
+	<div class="flex min-h-0 flex-col gap-4 overflow-y-auto">
 		<h1 class="text-lg font-semibold">Add Changelog Entry</h1>
 
 		<div class="flex flex-col gap-1.5">
@@ -67,6 +67,23 @@
 				<span class="text-sm text-muted-foreground">{status}</span>
 			{/if}
 		</div>
+
+		{#if title || body}
+			<!-- Same markup as an entry on /changelog, so this is how it will look -->
+			<div class="flex flex-col gap-1.5">
+				<span class="text-xs font-medium text-muted-foreground">Preview</span>
+				<div class="flex flex-col gap-1.5 rounded-md border p-4">
+					<div class="flex items-center justify-between">
+						<span class="font-medium">{title || 'Untitled'}</span>
+						<span class="text-xs text-muted-foreground">{new Date().toLocaleDateString()}</span>
+					</div>
+					<div class="prose prose-sm max-w-none text-sm text-muted-foreground">
+						<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+						{@html renderChangelog(body)}
+					</div>
+				</div>
+			</div>
+		{/if}
 	</div>
 
 	<!-- Styling cheatsheet -->
