@@ -20,12 +20,10 @@
 
 	let {
 		chatId,
-		projectId = null,
 		initialMessage = null,
 		initialAttachmentIds = []
 	}: {
 		chatId: string;
-		projectId?: string | null;
 		initialMessage?: string | null;
 		initialAttachmentIds?: string[];
 	} = $props();
@@ -315,7 +313,7 @@
 		tick().then(() => setTimeout(scrollToLastUserMessage, 100));
 
 		subscription = hub.connection
-			.stream('StreamChatResponse', message, chatId, projectId ?? null, attachmentIds)
+			.stream('StreamChatResponse', message, chatId, attachmentIds)
 			.subscribe({
 				next: (chunk) => {
 					messages = messages.map((m) =>

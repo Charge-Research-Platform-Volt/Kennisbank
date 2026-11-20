@@ -109,10 +109,11 @@ public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingSer
         int limit = args.RootElement.TryGetProperty("limit", out var l) ? Math.Clamp(l.GetInt32(), 1, 30) : 15;
 
         Guid[]? idsFilter = null;
-        if (projectId != null && Guid.TryParse(projectId, out var projGuid))
+        if (projectId != null && Guid.TryParse(projectId, out var rootId))
         {
-            Guid[] ids = await projectService.GetProjectItemIdsAsync(projGuid);
-            if (ids.Length > 0) idsFilter = ids;
+            idsFilter = await projectService.GetTreeItemIdsAsync(rootId);
+            // No filter means the whole library to the search, which a project chat must never see
+            if (idsFilter.Length == 0) return "This project has no library items yet.";
         }
 
         logger.Debug("LLM searching for: {Query} (type={Type}, limit={Limit})", query, typeFilter ?? "any", limit);
@@ -216,7 +217,7 @@ public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingSer
 
         if (projectId != null && Guid.TryParse(projectId, out var projGuid))
         {
-            Guid[] projectItemIds = await projectService.GetProjectItemIdsAsync(projGuid);
+            Guid[] projectItemIds = await projectService.GetTreeItemIdsAsync(projGuid);
             HashSet<Guid> allowed = [.. projectItemIds];
             items = items.Where(i => allowed.Contains(i.Id));
         }

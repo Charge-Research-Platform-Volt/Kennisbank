@@ -396,11 +396,18 @@ public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxon
     public async Task<bool> ItemAlreadyLinkedAsync(Guid projectId, Guid itemId)
         => await db.ProjectItemRelations.AnyAsync(r => r.ProjectId == projectId && r.ItemId == itemId);
 
-    public async Task<Guid[]> GetProjectItemIdsAsync(Guid projectId)
-        => await db.ProjectItemRelations
-            .Where(r => r.ProjectId == projectId)
+    /// <summary>
+    /// All library items anywhere in a project: the root and every folder below it
+    /// </summary>
+    public async Task<Guid[]> GetTreeItemIdsAsync(Guid rootId)
+    {
+        List<Guid> projectIds = [rootId, .. (await GetAllFoldersAsync(rootId)).Select(f => f.Id)];
+        return await db.ProjectItemRelations
+            .Where(r => projectIds.Contains(r.ProjectId))
             .Select(r => r.ItemId)
+            .Distinct()
             .ToArrayAsync();
+    }
 
     public async Task<bool> DeleteAsync(Guid id)
     {

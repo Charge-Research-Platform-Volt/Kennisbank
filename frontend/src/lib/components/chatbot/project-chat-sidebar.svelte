@@ -123,7 +123,7 @@
 	<!-- Content -->
 	{#if chatId}
 		<div class="min-h-0 flex-1 overflow-hidden">
-			<ChatView {chatId} {projectId} initialMessage={pendingMessage} />
+			<ChatView {chatId} initialMessage={pendingMessage} />
 		</div>
 	{:else}
 		<div class="flex flex-1 flex-col items-center justify-center gap-3 px-4">

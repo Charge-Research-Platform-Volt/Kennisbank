@@ -33,14 +33,14 @@ public class AppHub(ChatOrchestrationService chatOrchestrationService, PresenceT
         return await chatOrchestrationService.CreateChatAsync(Context.UserIdentifier!, Context.ConnectionId, message, projectId);
     }
 
-    public async IAsyncEnumerable<string> StreamChatResponse(string message, string chatId, string? projectId, List<string>? attachmentIds, [EnumeratorCancellation] CancellationToken cancellationToken) 
+    public async IAsyncEnumerable<string> StreamChatResponse(string message, string chatId, List<string>? attachmentIds, [EnumeratorCancellation] CancellationToken cancellationToken) 
     {
         presenceTracker.Touch(Context.UserIdentifier!);
         presenceTracker.ChatStreamStarted();
         
         try
         {
-            await foreach (string chunk in chatOrchestrationService.StreamResponseAsync(Context.UserIdentifier!, Context.ConnectionId, message, chatId, projectId, attachmentIds, cancellationToken))
+            await foreach (string chunk in chatOrchestrationService.StreamResponseAsync(Context.UserIdentifier!, Context.ConnectionId, message, chatId, attachmentIds, cancellationToken))
                 yield return chunk;
         }
         finally

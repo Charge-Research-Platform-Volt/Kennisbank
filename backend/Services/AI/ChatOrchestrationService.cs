@@ -148,7 +148,7 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
         }
     }
 
-    public async IAsyncEnumerable<string> StreamResponseAsync(string userId, string connectionId, string message, string chatId, string? projectId, List<string>? attachmentIds, [EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<string> StreamResponseAsync(string userId, string connectionId, string message, string chatId, List<string>? attachmentIds, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         logger.Information("Streaming AI response for {UserIdentifier}", userId);
 
@@ -164,8 +164,9 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
             yield break;
         }
 
-        List<object>? chatHistory = await LoadChatHistoryAsync(chatId, userId);
-        if (chatHistory == null) yield break;
+        var loaded = await LoadChatHistoryAsync(chatId, userId);
+        if (loaded == null) yield break;
+        var (chat, chatHistory) = loaded.Value;
 
         Guid? savedMessageId = await SaveUserMessageAsync(message, chatId, userId);
         if (savedMessageId == null) yield break;
@@ -184,7 +185,7 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
 
         var response = new StringBuilder();
         ChatTurnStats stats = new();
-        var stream = StreamAgenticResponse(connectionId, chatId, message, messageContent, attachmentNote, chatHistory, projectId, stats, null, cancellationToken);
+        var stream = StreamAgenticResponse(connectionId, chatId, message, messageContent, attachmentNote, chatHistory, chat.ProjectId?.ToString(), stats, null, cancellationToken);
         await using var enumerator = stream.GetAsyncEnumerator(cancellationToken);
         bool hasNext = true;
 
@@ -390,7 +391,7 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
         logger.Information("Compacted chat {ChatId} through {Cutoff}, folded {Count} messages", chat.Id, cutoff, toFold.Count);
     }
 
-    private async Task<List<object>?> LoadChatHistoryAsync(string chatId, string userId)
+    private async Task<(Chats Chat, List<object> History)?> LoadChatHistoryAsync(string chatId, string userId)
     {
         try
         {
@@ -409,7 +410,7 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
             }
 
             Messages[] recentMessages = await chatService.GetMessagesForContextAsync(chat.Id, chat.SummarizedThroughCreatedOn);
-            return BuildChatHistory(chat, recentMessages, chatId);
+            return (chat, BuildChatHistory(chat, recentMessages, chatId));
         }
         catch (Exception ex)
         {
