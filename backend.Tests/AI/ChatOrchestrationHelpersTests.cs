@@ -11,6 +11,7 @@ public class ChatOrchestrationHelpersTests
     [Theory]
     [InlineData("Solar is getting cheaper.[SRC:" + Uuid1 + "]", "Solar is getting cheaper.")]
     [InlineData("Solar is getting cheaper.[ATTACH:" + Uuid1 + "]", "Solar is getting cheaper.")]
+    [InlineData("Solar is getting cheaper.[DOC:" + Uuid1 + "]", "Solar is getting cheaper.")]
     [InlineData("Solar is getting cheaper.[SRC:" + Uuid1 + ", " + Uuid2 + "]", "Solar is getting cheaper.")]
     [InlineData("[SRC:" + Uuid1 + "]Wind too.[SRC:" + Uuid2 + "]", "Wind too.")]
     public void StripCitationMarkers_RemovesSourceAndAttachmentMarkers(string input, string expected)

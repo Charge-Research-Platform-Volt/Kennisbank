@@ -6,6 +6,7 @@ using KnowledgeBank.Services.Vector;
 using KnowledgeBank.Utils;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using System.Linq.Expressions;
 
 namespace KnowledgeBank.Services.Domain;
 
@@ -74,7 +75,13 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
             .Include(d => d.Type)
             .FirstOrDefaultAsync(d => d.Id == documentId);
 
-    public async Task<List<ProjectDocumentListItemDto>> ListAsync(Guid rootProjectId, Guid? folderId, string userId, bool isOwner)
+    public Task<List<ProjectDocumentListItemDto>> ListAsync(Guid rootProjectId, Guid? folderId, string userId, bool isOwner)
+        => ListWhereAsync(rootProjectId, d => d.FolderId == folderId, userId, isOwner);
+
+    public Task<List<ProjectDocumentListItemDto>> ListAllAsync(Guid rootProjectId, string userId, bool isOwner)
+        => ListWhereAsync(rootProjectId, d => true, userId, isOwner);
+
+    private async Task<List<ProjectDocumentListItemDto>> ListWhereAsync(Guid rootProjectId, Expression<Func<ProjectDocument, bool>> filter, string userId, bool isOwner)
     {
         bool isMember = await IsMemberAsync(rootProjectId, userId);
         List<ProjectDocument> documents = await db.ProjectDocuments
@@ -82,7 +89,8 @@ public class ProjectDocumentService(DatabaseContext db, IStorageService storageS
             .Include(d => d.Access)
             .Include(d => d.Versions)
             .Include(d => d.Type)
-            .Where(d => d.ProjectId == rootProjectId && d.FolderId == folderId)
+            .Where(d => d.ProjectId == rootProjectId)
+            .Where(filter)
             .OrderByDescending(d => d.UpdatedOn)
             .ToListAsync();
 

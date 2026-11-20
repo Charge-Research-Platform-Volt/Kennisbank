@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import 'katex/dist/katex.min.css';
-	import { render, type ResolvedSource } from '#lib/chat/render.js';
+	import { render, extractDocumentIds, type ResolvedSource } from '#lib/chat/render.js';
 
 	const libraryItemCache = new SvelteMap<string, ResolvedSource>();
 </script>
@@ -17,6 +17,7 @@
 	import ChatMessage from '#lib/components/chatbot/ChatMessage.svelte';
 	import { ArrowDown } from '@lucide/svelte';
 	import type { PendingAttachment } from '#lib/components/chatbot/chat-input.svelte';
+	import { projectDocuments } from '#lib/project-documents.js';
 
 	let {
 		chatId,
@@ -198,53 +199,87 @@
 		return map;
 	}
 
-	async function fetchSources(content: string, msgId: string) {
-		await attachmentsLoaded;
-		const allUuids = extractAllUuids(content);
-		if (allUuids.length === 0) return;
+	// Per chat view, unlike the library cache: access to a document can change, so reopening a chat looks again
+	const documentCache = new SvelteMap<string, ResolvedSource | null>();
 
-		const srcUuids = allUuids.filter((u) => !attachmentsMap.has(u));
-		const libraryLookup = await resolveLibraryItems(srcUuids);
+	/** Looks up cited project documents: one the user can no longer open stays a plain number badge */
+	async function resolveDocuments(ids: string[]): Promise<SvelteMap<string, ResolvedSource>> {
+		const uncached = ids.filter((id) => !documentCache.has(id));
+		await Promise.all(
+			uncached.map((id) =>
+				projectDocuments
+					.get(id)
+					.then((doc) =>
+						documentCache.set(id, {
+							id,
+							name: doc.title,
+							type: 'document',
+							projectId: doc.projectId
+						})
+					)
+					.catch(() => documentCache.set(id, null))
+			)
+		);
 
 		const map = new SvelteMap<string, ResolvedSource>();
-		allUuids.forEach((uuid) => {
-			const a = attachmentsMap.get(uuid);
-			if (a) {
-				map.set(uuid, a);
-				return;
-			}
-			const item = libraryLookup.get(uuid);
-			if (item) map.set(uuid, item);
-		});
+		for (const id of ids) {
+			const doc = documentCache.get(id);
+			if (doc) map.set(id, doc);
+		}
 
-		messages = messages.map((m) => (m.id === msgId ? { ...m, resolvedSources: map } : m));
+		return map;
+	}
+
+	/** Resolves every id cited in these messages: attachments from the chat, documents and library items from the API */
+	async function resolveAll(contents: string[]): Promise<SvelteMap<string, ResolvedSource>> {
+		await attachmentsLoaded;
+		const allUuids = [...new Set(contents.flatMap(extractAllUuids))];
+		const documentIds = new Set(contents.flatMap(extractDocumentIds));
+
+		const [library, documents] = await Promise.all([
+			resolveLibraryItems(allUuids.filter((u) => !attachmentsMap.has(u) && !documentIds.has(u))),
+			resolveDocuments([...documentIds])
+		]);
+
+		const lookup = new SvelteMap<string, ResolvedSource>();
+		for (const uuid of allUuids) {
+			const source = attachmentsMap.get(uuid) ?? documents.get(uuid) ?? library.get(uuid);
+			if (source) lookup.set(uuid, source);
+		}
+
+		return lookup;
+	}
+
+	function sourcesFor(
+		content: string,
+		lookup: Map<string, ResolvedSource>
+	): SvelteMap<string, ResolvedSource> {
+		const map = new SvelteMap<string, ResolvedSource>();
+		for (const uuid of extractAllUuids(content)) {
+			const source = lookup.get(uuid);
+			if (source) map.set(uuid, source);
+		}
+
+		return map;
+	}
+
+	async function fetchSources(content: string, msgId: string) {
+		if (extractAllUuids(content).length === 0) return;
+		const lookup = await resolveAll([content]);
+
+		messages = messages.map((m) =>
+			m.id === msgId ? { ...m, resolvedSources: sourcesFor(content, lookup) } : m
+		);
 	}
 
 	async function fetchSourcesForMessages(msgs: Message[]) {
-		await attachmentsLoaded;
 		const assistantMsgs = msgs.filter((m) => m.messageRole === 'Assistant');
-		const allUuids = [...new Set(assistantMsgs.flatMap((m) => extractAllUuids(m.content)))];
-		if (allUuids.length === 0) return;
+		if (!assistantMsgs.some((m) => extractAllUuids(m.content).length > 0)) return;
+		const lookup = await resolveAll(assistantMsgs.map((m) => m.content));
 
-		const srcUuids = allUuids.filter((u) => !attachmentsMap.has(u));
-		const libraryLookup = await resolveLibraryItems(srcUuids);
-
-		messages = msgs.map((m) => {
-			if (m.messageRole !== 'Assistant') return m;
-
-			const map = new SvelteMap<string, ResolvedSource>();
-			extractAllUuids(m.content).forEach((uuid) => {
-				const a = attachmentsMap.get(uuid);
-				if (a) {
-					map.set(uuid, a);
-					return;
-				}
-				const item = libraryLookup.get(uuid);
-				if (item) map.set(uuid, item);
-			});
-
-			return { ...m, resolvedSources: map };
-		});
+		messages = msgs.map((m) =>
+			m.messageRole === 'Assistant' ? { ...m, resolvedSources: sourcesFor(m.content, lookup) } : m
+		);
 	}
 
 	function fetchMessages(id: string) {
@@ -584,6 +619,13 @@
 	}
 	:global(.chat-cite-source:hover) {
 		color: var(--foreground);
+	}
+	/* render() writes the closing mark itself, before the citations; no-close-quote still ends the quote level */
+	:global(.prose blockquote p.quote-cited::after) {
+		content: no-close-quote;
+	}
+	:global(.quote-close) {
+		margin-right: 0.2rem;
 	}
 	:global(.chat-cite-source-tag) {
 		display: inline-block;

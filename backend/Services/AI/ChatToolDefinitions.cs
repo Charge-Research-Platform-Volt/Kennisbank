@@ -121,5 +121,47 @@ public static class ChatToolDefinitions
         }
     );
 
-    public static readonly MistralFunction[] All = [Search, GetItemDetails, FindRelatedItems, SearchItemContent, BrowseLibrary, FindSimilarResources, SearchAttachmentContent];
+    public static readonly MistralFunction ListProjectDocuments = new(
+        "list_project_documents",
+        "List this project's own documents (project plans, minutes, draft reports, evaluations, ...) that the user can open: title, type, folder, latest version and who uploaded it when. These are separate from library items. Use this for questions about which documents exist or which is most recent, e.g. \"what were the latest minutes?\".",
+        new { type = "object", properties = new { }, additionalProperties = false }
+    );
+
+    public static readonly MistralFunction SearchProjectDocuments = new(
+        "search_project_documents",
+        "Search the content of this project's own documents for relevant sections. Returns excerpts, not full documents. Optionally narrow the search to one document.",
+        new
+        {
+            type = "object",
+            properties = new
+            {
+                query = new { type = "string", description = "What to search for" },
+                documentId = new { type = "string", description = "Only search this document (its UUID). Omit to search all of them." }
+            },
+            required = new[] { "query" },
+            additionalProperties = false
+        }
+    );
+
+    public static readonly MistralFunction ReadProjectDocument = new(
+        "read_project_document",
+        "Read the full text of the latest version of one of this project's documents. Only works for short documents; for long ones it tells you to use search_project_documents instead.",
+        new
+        {
+            type = "object",
+            properties = new
+            {
+                documentId = new { type = "string", description = "The document's UUID" }
+            },
+            required = new[] { "documentId" },
+            additionalProperties = false
+        }
+    );
+
+    public static readonly MistralFunction[] Library = [Search, GetItemDetails, FindRelatedItems, SearchItemContent, BrowseLibrary, FindSimilarResources, SearchAttachmentContent];
+    public static readonly MistralFunction[] ProjectDocuments = [ListProjectDocuments, SearchProjectDocuments, ReadProjectDocument];
+    public static readonly MistralFunction[] All = [.. Library, .. ProjectDocuments];
+
+    /// <summary>The project document tools only exist in project chats: a library chat has no project to scope them to</summary>
+    public static MistralFunction[] ForScope(bool inProject) => inProject ? All : Library;
 }

@@ -1,8 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using KnowledgeBank.Data;
 using KnowledgeBank.IntegrationTests.Infrastructure;
 using KnowledgeBank.Models;
@@ -35,7 +32,7 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
         var (creator, _) = await fixture.LoginAsNewUserAsync();
         Guid projectId = await creator.CreateProjectAsync();
         string marker = Api.Unique("Budget overrun in phase two");
-        byte[] docx = Docx("Minutes of the steering group", marker);
+        byte[] docx = TestDocuments.Docx("Minutes of the steering group", marker);
 
         Guid documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "minutes.docx", content: docx);
         ProjectDocumentVersion version = await WaitForPipelineAsync(await LatestVersionIdAsync(documentId));
@@ -72,10 +69,10 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
         var (creator, _) = await fixture.LoginAsNewUserAsync();
         Guid projectId = await creator.CreateProjectAsync();
         string oldMarker = Api.Unique("Draft one"), newMarker = Api.Unique("Draft two");
-        Guid documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: Docx(oldMarker));
+        Guid documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: TestDocuments.Docx(oldMarker));
         await WaitForPipelineAsync(await LatestVersionIdAsync(documentId));
 
-        Guid secondVersion = await AddVersionAsync(creator, projectId, documentId, Docx(newMarker));
+        Guid secondVersion = await AddVersionAsync(creator, projectId, documentId, TestDocuments.Docx(newMarker));
         await WaitForPipelineAsync(secondVersion);
 
         List<ProjectDocumentChunk> chunks = await ChunksAsync(documentId);
@@ -95,11 +92,11 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
     {
         var (creator, _) = await fixture.LoginAsNewUserAsync();
         Guid projectId = await creator.CreateProjectAsync();
-        Guid documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: Docx(Api.Unique("Has text")));
+        Guid documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: TestDocuments.Docx(Api.Unique("Has text")));
         await WaitForPipelineAsync(await LatestVersionIdAsync(documentId));
         await Api.WaitUntilAsync(async () => (await MeiliChunksAsync(documentId)).Count > 0, "chunks in Meilisearch");
 
-        Guid emptyVersion = await AddVersionAsync(creator, projectId, documentId, Docx());
+        Guid emptyVersion = await AddVersionAsync(creator, projectId, documentId, TestDocuments.Docx());
         ProjectDocumentVersion version = await WaitForPipelineAsync(emptyVersion);
 
         Assert.Equal(EmbeddingStatus.Completed, version.EmbeddingStatus);
@@ -114,10 +111,10 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
         var (creator, _) = await fixture.LoginAsNewUserAsync();
         Guid projectId = await creator.CreateProjectAsync();
         string oldMarker = Api.Unique("Old text"), newMarker = Api.Unique("New text");
-        Guid documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: Docx(oldMarker));
+        Guid documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: TestDocuments.Docx(oldMarker));
         Guid firstVersion = await LatestVersionIdAsync(documentId);
         await WaitForPipelineAsync(firstVersion);
-        Guid secondVersion = await AddVersionAsync(creator, projectId, documentId, Docx(newMarker));
+        Guid secondVersion = await AddVersionAsync(creator, projectId, documentId, TestDocuments.Docx(newMarker));
         await WaitForPipelineAsync(secondVersion);
 
         using IServiceScope scope = fixture.Services.CreateScope();
@@ -159,7 +156,7 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
         fixture.Ai.FailConversions = true;
         try
         {
-            documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: Docx(Api.Unique("Searchable anyway")));
+            documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: TestDocuments.Docx(Api.Unique("Searchable anyway")));
             version = await WaitForPipelineAsync(await LatestVersionIdAsync(documentId));
         }
         finally
@@ -221,7 +218,7 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
     {
         var (creator, _) = await fixture.LoginAsNewUserAsync();
         Guid projectId = await creator.CreateProjectAsync();
-        Guid documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: Docx(Api.Unique("To be deleted")));
+        Guid documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: TestDocuments.Docx(Api.Unique("To be deleted")));
         Guid versionId = await LatestVersionIdAsync(documentId);
         await WaitForPipelineAsync(versionId);
         await Api.WaitUntilAsync(async () => (await MeiliChunksAsync(documentId)).Count > 0, "chunks in Meilisearch");
@@ -240,7 +237,7 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
     {
         var (creator, _) = await fixture.LoginAsNewUserAsync();
         Guid projectId = await creator.CreateProjectAsync();
-        Guid documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: Docx(Api.Unique("Project goes away")));
+        Guid documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: TestDocuments.Docx(Api.Unique("Project goes away")));
         await WaitForPipelineAsync(await LatestVersionIdAsync(documentId));
         await Api.WaitUntilAsync(async () => (await MeiliChunksAsync(documentId)).Count > 0, "chunks in Meilisearch");
 
@@ -266,7 +263,7 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
         fixture.Ai.FailConversions = true;
         try
         {
-            documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: Docx(Api.Unique("Retry me")));
+            documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: TestDocuments.Docx(Api.Unique("Retry me")));
             versionId = await LatestVersionIdAsync(documentId);
             ProjectDocumentVersion failed = await WaitForPipelineAsync(versionId);
             Assert.Equal((EmbeddingStatus.Failed, 1), (failed.PreviewStatus, failed.PreviewFailures));
@@ -318,7 +315,7 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
     {
         var (creator, _) = await fixture.LoginAsNewUserAsync();
         Guid projectId = await creator.CreateProjectAsync();
-        Guid documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: Docx(Api.Unique("Kept by reindex")));
+        Guid documentId = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: TestDocuments.Docx(Api.Unique("Kept by reindex")));
         await WaitForPipelineAsync(await LatestVersionIdAsync(documentId));
         int chunkCount = (await ChunksAsync(documentId)).Count;
 
@@ -350,7 +347,7 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
         var (creator, _) = await fixture.LoginAsNewUserAsync();
         Guid projectId = await creator.CreateProjectAsync();
 
-        Guid embeddedDocument = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: Docx(Api.Unique("Re-embed me")));
+        Guid embeddedDocument = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: TestDocuments.Docx(Api.Unique("Re-embed me")));
         Guid embeddedVersion = await LatestVersionIdAsync(embeddedDocument);
         await WaitForPipelineAsync(embeddedVersion);
         Guid[] chunksBefore = [.. (await ChunksAsync(embeddedDocument)).Select(c => c.Id)];
@@ -359,7 +356,7 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
         fixture.Ai.FailConversions = true;
         try
         {
-            previewDocument = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: Docx(Api.Unique("No preview")));
+            previewDocument = await creator.CreateProjectDocumentAsync(projectId, fileName: "plan.docx", content: TestDocuments.Docx(Api.Unique("No preview")));
             previewVersion = await LatestVersionIdAsync(previewDocument);
             await WaitForPipelineAsync(previewVersion);
         }
@@ -393,17 +390,6 @@ public class ProjectDocumentPipelineTests(KennisbankFixture fixture)
     #region Helpers
 
     /// <summary>A minimal valid Word document with one paragraph per string.</summary>
-    private static byte[] Docx(params string[] paragraphs)
-    {
-        using MemoryStream stream = new();
-        using (WordprocessingDocument document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document))
-        {
-            MainDocumentPart main = document.AddMainDocumentPart();
-            main.Document = new Document(new Body(paragraphs.Select(p => new Paragraph(new Run(new Text(p))))));
-        }
-        return stream.ToArray();
-    }
-
     private static async Task<Guid> AddVersionAsync(HttpClient client, Guid projectId, Guid documentId, byte[] docx)
     {
         string upload = await client.UploadProjectDocumentFileAsync("plan.docx", docx);

@@ -7,6 +7,7 @@ using KnowledgeBank.Models;
 using KnowledgeBank.Services.Background;
 using Microsoft.AspNetCore.SignalR;
 using System.Text.Json;
+using KnowledgeBank.Models.Chat;
 
 namespace KnowledgeBank.Services.AI;
 
@@ -21,12 +22,18 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
     // No client can ever join with this id, so SignalR status and reasoning events of an eval turn go nowhere
     private const string EvalConnectionId = "chat-eval";
 
-    private static string BuildSystemPrompt(string? projectId)
+    private static string BuildSystemPrompt(bool inProject)
     {
-        string scope = projectId != null ? "this project" : "the library";
-        string scopeAdverb = projectId != null ? "this project's content" : "the library";
+        string scope = inProject ? "this project" : "the library";
+        string scopeAdverb = inProject ? "this project's content" : "the library";
+        
+        string documentTools = inProject
+            ? "- This project also has its own documents (project plans, minutes, draft reports, evaluations, ...), separate from its library items. Use list_project_documents for questions about which documents exist or which is most recent, search_project_documents to find what they say, and read_project_document to read a short one in full. For questions about the project itself (its plans, decisions, progress), search the project documents as well as the library."
+            : "";
+        string documentCitation = inProject ? "- Cite project documents inline using ONLY the exact marker: [DOC:uuid]" : "";
+
         return $"""
-        You are a research assistant for a personal {(projectId != null ? "project" : "library")}. Your primary purpose is to help users explore, connect, and reason about content they have collected.
+        You are a research assistant for a personal {(inProject ? "project" : "library")}. Your primary purpose is to help users explore, connect, and reason about content they have collected.
 
         Always search {scopeAdverb} first before answering — even for general topics, there may be relevant resources, people, or organisations stored. Only skip searching if the question is purely conversational (greetings, thanks, etc.).
 
@@ -46,6 +53,7 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
         - You can call multiple tools in a single turn when you have several distinct angles to cover — e.g. multiple search_library calls with different queries, or search_item_content on several items at once — instead of spreading them one at a time across turns.
         - The list of files attached to this chat (if any) is always provided as a separate system message — use search_attachment_content with the attachment's id to look up relevant sections.
         - Attachments and {scope} search are complementary, not alternatives — even when an attached file directly and thoroughly answers the question, still call search_library for the same topic, since {scope} may hold separate relevant resources, people, or organisations the attachment doesn't cover.
+        {documentTools}
 
         You can:
         - Answer questions grounded in {scope} sources
@@ -61,11 +69,12 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
         - ONLY cite sources that appear in tool results or the attachments list. No exceptions.
         - Cite {scope} items inline using ONLY the exact marker from tool results: [SRC:uuid]
         - Cite attached files inline using ONLY the exact marker: [ATTACH:uuid]
+        {documentCitation}
         - Cite every distinct fact or claim drawn from a source immediately after that claim — not just once at the end of a paragraph or bullet-group summarizing several points. If several findings in a row come from the same source, cite after each one, not just the last.
-        - Each marker must be separate — NEVER group like [SRC:uuid,SRC:uuid] or [ATTACH:uuid,ATTACH:uuid]
-        - NEVER write [1], [2] or any numbered citation — ONLY [SRC:uuid] or [ATTACH:uuid] markers
+        - Each marker must be separate — NEVER group like [SRC:uuid,SRC:uuid], [ATTACH:uuid,ATTACH:uuid] or [DOC:uuid,DOC:uuid]
+        - NEVER write [1], [2] or any numbered citation — ONLY [SRC:uuid], [ATTACH:uuid] or [DOC:uuid] markers
         - NEVER invent UUIDs — every marker you write must be copied verbatim from something that actually appeared in a tool result or the attachments list (a "Cite as:" line, or a UUID attached to a related item like "- Author: Name [SRC:uuid]") — never one you assembled or guessed yourself
-        - NEVER write a bare UUID without the surrounding brackets (e.g. "...as shown here:00000000-0000-4000-8000-000000000000" is WRONG) — always the full [SRC:uuid] or [ATTACH:uuid] form
+        - NEVER write a bare UUID without the surrounding brackets (e.g. "...as shown here:00000000-0000-4000-8000-000000000000" is WRONG) — always the full [SRC:uuid], [ATTACH:uuid] or [DOC:uuid] form
         - Do NOT write a Sources section — it is generated automatically
         - If you haven't used any tools and no attachment informed your answer, cite nothing.
 
@@ -77,8 +86,8 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
         Generate a concise title (max 6 words) for a chat starting with the given message. Output only the title, nothing else. No markdown, no quotes, no punctuation.
     """;
 
-    // Same marker shapes the frontend renders: [SRC:uuid] / [ATTACH:uuid], including comma-grouped ids
-    private static readonly Regex SourceMarkerPattern = new(@"\[(?:SRC|ATTACH):[^\]]+\]", RegexOptions.Compiled);
+    // Same marker shapes the frontend renders: [SRC:uuid] / [ATTACH:uuid] / [DOC:uuid], including comma-grouped ids
+    private static readonly Regex SourceMarkerPattern = new(@"\[(?:SRC|ATTACH|DOC):[^\]]+\]", RegexOptions.Compiled);
     private static readonly Regex AiTagPattern = new(@"\[/?AI\]", RegexOptions.Compiled);
     internal static string StripCitationMarkers(string text) => SourceMarkerPattern.Replace(text, "").Trim();
     internal static string StripAiTags(string text) => AiTagPattern.Replace(text, "").Trim();
@@ -148,7 +157,7 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
         }
     }
 
-    public async IAsyncEnumerable<string> StreamResponseAsync(string userId, string connectionId, string message, string chatId, List<string>? attachmentIds, [EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<string> StreamResponseAsync(string userId, string connectionId, string message, string chatId, bool isOwner, List<string>? attachmentIds, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         logger.Information("Streaming AI response for {UserIdentifier}", userId);
 
@@ -185,7 +194,8 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
 
         var response = new StringBuilder();
         ChatTurnStats stats = new();
-        var stream = StreamAgenticResponse(connectionId, chatId, message, messageContent, attachmentNote, chatHistory, chat.ProjectId?.ToString(), stats, null, cancellationToken);
+        ChatToolContext toolContext = new(chat.Id, userId, isOwner, chat.ProjectId, connectionId);
+        var stream = StreamAgenticResponse(connectionId, chatId, message, messageContent, attachmentNote, chatHistory, toolContext, stats, null, cancellationToken);
         await using var enumerator = stream.GetAsyncEnumerator(cancellationToken);
         bool hasNext = true;
 
@@ -249,16 +259,19 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
         // A chat id that doesn't exist, so attachment lookups find nothing and the context-token update is skipped
         string chatId = Guid.NewGuid().ToString();
 
-        await foreach (string chunk in StreamAgenticResponse(EvalConnectionId, chatId, question, question, null, chatHistory, null, stats, modelOverride, cancellationToken))
+        ChatToolContext toolContext = new(Guid.Parse(chatId), UserId: "", IsOwner: false, ProjectId: null, EvalConnectionId);
+        await foreach (string chunk in StreamAgenticResponse(EvalConnectionId, chatId, question, question, null, chatHistory, toolContext, stats, modelOverride, cancellationToken))
             answer.Append(chunk);
 
         return (answer.ToString(), stats);
     }
 
-    private async IAsyncEnumerable<string> StreamAgenticResponse(string connectionId, string chatId, string message, string messageContent, string? attachmentNote, List<object> chatHistory, string? projectId, ChatTurnStats stats, string? modelOverride, [EnumeratorCancellation] CancellationToken cancellationToken)
+    private async IAsyncEnumerable<string> StreamAgenticResponse(string connectionId, string chatId, string message, string messageContent, string? attachmentNote, List<object> chatHistory, ChatToolContext toolContext, ChatTurnStats stats, string? modelOverride, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         Stopwatch turnStopwatch = Stopwatch.StartNew();
-        List<object> messages = [new { role = "system", content = BuildSystemPrompt(projectId) }];
+        bool inProject = toolContext.ProjectId != null;
+        List<object> messages = [new { role = "system", content = BuildSystemPrompt(inProject) }];
+        MistralFunction[] tools = ChatToolDefinitions.ForScope(inProject);
 
         List<MessageAttachments> allAttachments = await chatService.GetAttachmentsForChatAsync(Guid.Parse(chatId), activeOnly: true);
         if (allAttachments.Count > 0)
@@ -284,7 +297,7 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
 
             for (int attempt = 0; attempt < 2; attempt++)
             {
-                await foreach(MistralStreamChunk chunk in mistralClient.StreamAsync(new MistralChatRequest { Messages = messages, Functions = ChatToolDefinitions.All, ReasoningEffort = MistralReasoningEffort.High }, modelOverride, cancellationToken))
+                await foreach(MistralStreamChunk chunk in mistralClient.StreamAsync(new MistralChatRequest { Messages = messages, Functions = tools, ReasoningEffort = MistralReasoningEffort.High }, modelOverride, cancellationToken))
                 {
                     if (chunk.Reasoning != null)
                         await hubContext.Clients.Client(connectionId).ChatReasoningChunk(chunk.Reasoning!);
@@ -341,7 +354,7 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
                     return Task.FromResult($"You already called {tc.Name} with these exact arguments this turn — the result is above and would be identical. Don't repeat it: use a substantially different query, a different tool, or answer with what you have.");
                 }
 
-                return toolExecutor.ExecuteAsync(tc, message, projectId, Guid.Parse(chatId), connectionId, cancellationToken);
+                return toolExecutor.ExecuteAsync(tc, message, toolContext, cancellationToken);
             }));
 
             stats.ToolCalls += toolCalls.Count;

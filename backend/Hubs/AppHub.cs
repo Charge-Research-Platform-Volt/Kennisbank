@@ -9,7 +9,7 @@ namespace KnowledgeBank.Hubs;
 
 [SignalRHub]
 [Authorize]
-public class AppHub(ChatOrchestrationService chatOrchestrationService, PresenceTracker presenceTracker) : Hub<IAppHubClient>
+public class AppHub(ChatOrchestrationService chatOrchestrationService, PresenceTracker presenceTracker, IAuthorizationService authorizationService) : Hub<IAppHubClient>
 {
     Serilog.ILogger logger = Serilog.Log.ForContext<AppHub>();
 
@@ -36,11 +36,12 @@ public class AppHub(ChatOrchestrationService chatOrchestrationService, PresenceT
     public async IAsyncEnumerable<string> StreamChatResponse(string message, string chatId, List<string>? attachmentIds, [EnumeratorCancellation] CancellationToken cancellationToken) 
     {
         presenceTracker.Touch(Context.UserIdentifier!);
+        bool isOwner = (await authorizationService.AuthorizeAsync(Context.User!, "RequireOwner")).Succeeded;
         presenceTracker.ChatStreamStarted();
         
         try
         {
-            await foreach (string chunk in chatOrchestrationService.StreamResponseAsync(Context.UserIdentifier!, Context.ConnectionId, message, chatId, attachmentIds, cancellationToken))
+            await foreach (string chunk in chatOrchestrationService.StreamResponseAsync(Context.UserIdentifier!, Context.ConnectionId, message, chatId, isOwner, attachmentIds, cancellationToken))
                 yield return chunk;
         }
         finally

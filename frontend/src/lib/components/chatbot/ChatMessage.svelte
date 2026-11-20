@@ -1,8 +1,22 @@
 <script lang="ts">
 	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
-	import { buildSourceOrder, parseSegments, type ResolvedSource } from '#lib/chat/render.js';
+	import {
+		buildSourceOrder,
+		parseSegments,
+		opensInPlace,
+		sourceHref,
+		type ResolvedSource
+	} from '#lib/chat/render.js';
 
 	const maxAuthorsShown = 3;
+
+	const kindLabels: Record<ResolvedSource['type'], string> = {
+		resource: 'Library Source',
+		person: 'Library Source',
+		organisation: 'Library Source',
+		attachment: 'Attachment',
+		document: 'Project Document'
+	};
 
 	let {
 		content,
@@ -19,7 +33,8 @@
 	const sourceOrder = $derived(buildSourceOrder(content));
 
 	// Popover
-	type PopoverState = { source: ResolvedSource; x: number; y: number };
+	// source is null for a citation that is deleted or no longer accessible
+	type PopoverState = { source: ResolvedSource | null; x: number; y: number };
 	let popover = $state<PopoverState | null>(null);
 	let dismissTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -37,23 +52,22 @@
 		}, 150);
 	}
 
-	function showPopoverForElement(el: HTMLElement, source: ResolvedSource) {
+	function showPopoverForElement(el: HTMLElement, source: ResolvedSource | null) {
 		cancelDismiss();
 		const rect = el.getBoundingClientRect();
 		popover = { source, x: rect.left + rect.width / 2, y: rect.top };
 	}
 
 	function handlePointerOver(e: PointerEvent) {
+		// Not resolved yet (still streaming or loading): nothing to say about the source
 		if (!resolvedSources) return;
 		const badge = (e.target as HTMLElement).closest(
 			'.chat-cite-num[data-uuid]'
-		) as HTMLAnchorElement | null;
+		) as HTMLElement | null;
 		if (!badge) return;
 		const uuid = badge.dataset.uuid;
 		if (!uuid) return;
-		const source = resolvedSources.get(uuid);
-		if (!source) return;
-		showPopoverForElement(badge, source);
+		showPopoverForElement(badge, resolvedSources.get(uuid) ?? null);
 	}
 
 	function handlePointerOut(e: PointerEvent) {
@@ -94,16 +108,13 @@
 			{#each [...sourceOrder.entries()].sort((a, b) => a[1] - b[1]) as [uuid, n] (uuid)}
 				{#if resolvedSources.has(uuid)}
 					{@const src = resolvedSources.get(uuid)!}
-					{@const href =
-						src.type === 'attachment'
-							? `/api/files/${uuid}`
-							: `/library?inspectorId=${uuid}&inspectorType=${src.type}`}
+					{@const href = sourceHref(src)}
 					<li>
 						<a
 							{href}
 							class="chat-cite-source"
 							title={src.name}
-							target="_blank"
+							target={opensInPlace(href) ? undefined : '_blank'}
 							rel="noopener noreferrer"
 							onpointerenter={(e) => showPopoverForElement(e.currentTarget, src)}
 							onpointerleave={scheduleDismiss}
@@ -111,8 +122,20 @@
 							[{n}] {src.name}
 							{#if src.type === 'attachment'}
 								<span class="chat-cite-source-tag">Attachment</span>
+							{:else if src.type === 'document'}
+								<span class="chat-cite-source-tag">Document</span>
 							{/if}
 						</a>
+					</li>
+				{:else}
+					<!-- Deleted, or no longer accessible: the API can't tell which, and says nothing else on purpose -->
+					<li>
+						<span
+							class="text-[0.8rem] text-muted-foreground italic"
+							title="This source was deleted, or you no longer have access to it."
+						>
+							[{n}] Unavailable source
+						</span>
 					</li>
 				{/if}
 			{/each}
@@ -128,54 +151,57 @@
 		onpointerleave={scheduleDismiss}
 		role="tooltip"
 	>
-		<p class="cite-popover-kind">
-			{popover.source.type === 'attachment' ? 'Attachment' : 'Library Source'}
-		</p>
-		<p class="cite-popover-name" title={popover.source.name}>{popover.source.name}</p>
-		{#if popover.source.authors && popover.source.authors.length > 0}
-			{@const authors = popover.source.authors}
-			{@const shown = authors.slice(0, maxAuthorsShown)}
-			{@const hiddenCount = authors.length - shown.length}
-			<p class="cite-popover-authors" title={authors.map((a) => a.name).join(', ')}>
-				{#each shown as author, i (author.id)}
-					{#if author.fileType === 'person' || author.fileType === 'organisation'}
-						<a
-							href="/library?inspectorId={author.id}&inspectorType={author.fileType}"
-							target="_blank"
-							rel="noopener noreferrer"
-						>
-							{author.name}
-						</a>
-					{:else}
-						<span>{author.name}</span>
-					{/if}
-					{#if i < shown.length - 1}<span>, </span>{/if}
-				{/each}
-				{#if hiddenCount > 0}
-					<span> +{hiddenCount} more</span>
-				{/if}
+		{#if !popover.source}
+			<p class="cite-popover-kind">Unavailable source</p>
+			<p class="cite-popover-note">This source was deleted, or you no longer have access to it.</p>
+		{:else}
+			<p class="cite-popover-kind">
+				{kindLabels[popover.source.type]}
 			</p>
+			<p class="cite-popover-name" title={popover.source.name}>{popover.source.name}</p>
+			{#if popover.source.authors && popover.source.authors.length > 0}
+				{@const authors = popover.source.authors}
+				{@const shown = authors.slice(0, maxAuthorsShown)}
+				{@const hiddenCount = authors.length - shown.length}
+				<p class="cite-popover-authors" title={authors.map((a) => a.name).join(', ')}>
+					{#each shown as author, i (author.id)}
+						{#if author.fileType === 'person' || author.fileType === 'organisation'}
+							<a
+								href="/library?inspectorId={author.id}&inspectorType={author.fileType}"
+								target="_blank"
+								rel="noopener noreferrer"
+							>
+								{author.name}
+							</a>
+						{:else}
+							<span>{author.name}</span>
+						{/if}
+						{#if i < shown.length - 1}<span>, </span>{/if}
+					{/each}
+					{#if hiddenCount > 0}
+						<span> +{hiddenCount} more</span>
+					{/if}
+				</p>
+			{/if}
+			<div class="cite-popover-links">
+				{#if popover.source.type === 'document'}
+					<a href={sourceHref(popover.source)}>Open document</a>
+				{:else if popover.source.type !== 'attachment'}
+					<a href={sourceHref(popover.source)} target="_blank" rel="noopener noreferrer">
+						Open in library
+					</a>
+				{/if}
+				{#if popover.source.fileType === 'website' && popover.source.sourceUrl}
+					<a href={popover.source.sourceUrl} target="_blank" rel="noopener noreferrer">
+						Open website
+					</a>
+				{:else if popover.source.type === 'attachment' || (popover.source.type === 'resource' && popover.source.fileType !== 'website')}
+					<a href="/api/files/{popover.source.id}" target="_blank" rel="noopener noreferrer">
+						Open file
+					</a>
+				{/if}
+			</div>
 		{/if}
-		<div class="cite-popover-links">
-			{#if popover.source.type !== 'attachment'}
-				<a
-					href="/library?inspectorId={popover.source.id}&inspectorType={popover.source.type}"
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					Open in library
-				</a>
-			{/if}
-			{#if popover.source.fileType === 'website' && popover.source.sourceUrl}
-				<a href={popover.source.sourceUrl} target="_blank" rel="noopener noreferrer">
-					Open website
-				</a>
-			{:else if popover.source.type === 'attachment' || (popover.source.type === 'resource' && popover.source.fileType !== 'website')}
-				<a href="/api/files/{popover.source.id}" target="_blank" rel="noopener noreferrer">
-					Open file
-				</a>
-			{/if}
-		</div>
 	</div>
 {/if}
 
@@ -201,6 +227,12 @@
 		letter-spacing: 0.04em;
 		color: var(--muted-foreground);
 		margin: 0 0 0.15rem 0;
+	}
+
+	.cite-popover-note {
+		font-size: 0.72rem;
+		color: var(--muted-foreground);
+		margin: 0;
 	}
 
 	.cite-popover-name {

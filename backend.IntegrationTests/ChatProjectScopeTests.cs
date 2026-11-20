@@ -4,6 +4,7 @@ using System.Text.Json;
 using KnowledgeBank.Data;
 using KnowledgeBank.IntegrationTests.Infrastructure;
 using KnowledgeBank.Models;
+using KnowledgeBank.Models.Chat;
 using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -93,7 +94,9 @@ public class ChatProjectScopeTests(KennisbankFixture fixture)
         using IServiceScope scope = fixture.Services.CreateScope();
         string result = await scope.ServiceProvider.GetRequiredService<ChatToolExecutor>().ExecuteAsync(
             new MistralToolCall("call-1", "search_library", """{"query":"energy"}"""),
-            "What do we know about energy?", rootId.ToString(), Guid.NewGuid(), "test-connection", CancellationToken.None);
+            "What do we know about energy?",
+            new ChatToolContext(Guid.NewGuid(), Guid.NewGuid().ToString(), IsOwner: false, rootId, "test-connection"),
+            CancellationToken.None);
 
         Assert.Equal("This project has no library items yet.", result);
     }
