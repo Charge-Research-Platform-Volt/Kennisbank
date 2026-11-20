@@ -1,6 +1,6 @@
+using MailKit;
 using MailKit.Net.Smtp;
 using MimeKit;
-using System.IO;
 
 namespace KnowledgeBank.Utils
 {
@@ -23,7 +23,7 @@ namespace KnowledgeBank.Utils
                 client.Connect(smtpHost, tlsPort, MailKit.Security.SecureSocketOptions.StartTls);
                 client.Authenticate(address, password);
 
-                client.Send(message);
+                client.Send(new SendRequest(message));
                 client.Disconnect(true);
             }
         }
@@ -44,7 +44,7 @@ namespace KnowledgeBank.Utils
             using var client = new SmtpClient();
             client.Connect(smtpHost, tlsPort, MailKit.Security.SecureSocketOptions.StartTls);
             client.Authenticate(address, password);
-            client.Send(message);
+            client.Send(new SendRequest(message));
             client.Disconnect(true);
         }
 
@@ -63,7 +63,7 @@ namespace KnowledgeBank.Utils
             using var client = new SmtpClient();
             client.Connect(smtpHost, tlsPort, MailKit.Security.SecureSocketOptions.StartTls);
             client.Authenticate(address, password);
-            client.Send(message);
+            client.Send(new SendRequest(message));
             client.Disconnect(true);
         }
     }
