@@ -10,12 +10,12 @@ public class LibraryService(DatabaseContext db, LibrarySearchIndexService librar
 {
     private readonly Serilog.ILogger logger = Serilog.Log.ForContext<LibraryService>();
 
-    public async Task<List<LibraryItemWithChunks>> SearchContentAsync(string query, int limit, Guid[]? idsFilter = null, string? typeFilter = null, Guid[]? excludeIds = null, int chunksPerParent = 3)
+    public async Task<List<LibraryItemWithChunks>> SearchContentAsync(string query, int limit, Guid[]? idsFilter = null, string? typeFilter = null, Guid[]? excludeIds = null, int chunksPerParent = 3, bool crop = true)
     {
         float[] queryEmbedding = await embeddingService.GenerateEmbedding(query);
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        List<ChunkSearchResult> chunkResults = await chunkSearchIndexService.SearchAsync(query, queryEmbedding, limit, idsFilter, typeFilter, excludeIds, chunksPerParent);
+        List<ChunkSearchResult> chunkResults = await chunkSearchIndexService.SearchAsync(query, queryEmbedding, limit, idsFilter, typeFilter, excludeIds, chunksPerParent, crop);
         stopwatch.Stop();
         logger.Debug("Meilisearch chunk search took {ElapsedMs}ms for query: {Query}", stopwatch.ElapsedMilliseconds, query);
 

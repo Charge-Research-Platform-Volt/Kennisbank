@@ -12,10 +12,16 @@ using KnowledgeBank.Models.ProjectDocuments;
 
 namespace KnowledgeBank.Services.AI;
 
-public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingService, AttachmentChunkSearchIndexService attachmentChunkSearchIndexService, IServiceScopeFactory scopeFactory, IHubContext<AppHub, IAppHubClient> hubContext, UsageMetrics usageMetrics)
+public class ChatToolExecutor(EmbeddingService embeddingService, AttachmentChunkSearchIndexService attachmentChunkSearchIndexService, IServiceScopeFactory scopeFactory, IHubContext<AppHub, IAppHubClient> hubContext, UsageMetrics usageMetrics)
 {
     private const float RelevanceThreshold = 0.25f;
     private const int MaxReadDocumentChars = 32_000;
+
+    // Upper bound for one search result in the model's context. Tokens are estimated at ~3 characters each,
+    // which overestimates, so the real size stays below this
+    private const int SearchResultTokenBudget = 20_000;
+    private static int EstimateTokens(string text) => Math.Max(1, text.Length / 3);
+
     private readonly Serilog.ILogger logger = Serilog.Log.ForContext<ChatToolExecutor>();
 
     public async Task<string> ExecuteAsync(MistralToolCall toolCall, string userQuestion, ChatToolContext context, CancellationToken cancellationToken)
@@ -85,32 +91,73 @@ public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingSer
         }
     }
 
-    public async Task<string> FormatSearchResultsAsync(List<LibraryItemWithChunks> results, string userQuestion, string searchQuery, CancellationToken ct)
+    /// <summary>
+    /// Formats search hits as verbatim passages, grouped per item under its citation line. Passages are added round-robin
+    /// (every hit's best passage first, then every hit's second, ...) until the token budget is spent, so the budget
+    /// buys breadth before depth. Hits that got no room are listed by id so the model can read them with search_item_content.
+    /// </summary>
+    internal static string FormatSearchResults(List<LibraryItemWithChunks> results, int tokenBudget = SearchResultTokenBudget)
     {
-        var relevant = results.Where(i => i.Score >= RelevanceThreshold).ToList();
-
+        List<LibraryItemWithChunks> relevant = [.. results.Where(i => i.Score >= RelevanceThreshold)];
         if (relevant.Count == 0)
             return "No relevant results found";
 
-        var summaryTasks = relevant.Select(item => item.MatchedChunks.Count > 0
-            ? aiService.SummarizeChunksAsync(userQuestion, searchQuery, item.Item.Name, item.MatchedChunks, ct)
-            : Task.FromResult(item.Item.Description ?? ""));
+        List<string>[] included = [.. relevant.Select(_ => new List<string>())];
+        int used = 0;
+        int rounds = relevant.Max(i => i.MatchedChunks.Count);
+        bool full = false;
 
-        string[] summaries = await Task.WhenAll(summaryTasks);
+        for (int round = 0; round < rounds && !full; round++)
+        {
+            for (int i = 0; i < relevant.Count; i++)
+            {
+                if (round >= relevant[i].MatchedChunks.Count) continue;
+
+                string chunk = relevant[i].MatchedChunks[round];
+                int cost = EstimateTokens(chunk);
+                if (used + cost > tokenBudget) { full = true; break; }
+
+                included[i].Add(chunk);
+                used += cost;
+            }
+        }
 
         StringBuilder sb = new();
+        List<LibraryItemWithChunks> notShown = [];
 
         for (int i = 0; i < relevant.Count; i++)
         {
-            var item = relevant[i];
+            LibraryItemWithChunks item = relevant[i];
+
+            if (included[i].Count == 0 && item.MatchedChunks.Count > 0)
+            {
+                notShown.Add(item);
+                continue;
+            }
+
             sb.AppendLine($"{item.Item.Name} ({item.Item.Type})");
             sb.AppendLine($"Cite as: [SRC:{item.Item.Id}]");
             sb.AppendLine($"Relevance: {item.Score:F2}");
 
-            if (!string.IsNullOrWhiteSpace(summaries[i]) && summaries[i] != "NO_RELEVANT_CONTENT")
-                sb.AppendLine($"Content: {summaries[i]}");
+            if (included[i].Count > 0)
+            {
+                sb.AppendLine("Passages:");
+                sb.AppendLine(string.Join("\n---\n", included[i]));
+            }
+            else if (!string.IsNullOrWhiteSpace(item.Item.Description))
+            {
+                sb.AppendLine($"Description: {item.Item.Description}");
+            }
 
             sb.AppendLine();
+        }
+
+        if (notShown.Count > 0)
+        {
+            // No citation marker on purpose: there's nothing shown yet to cite
+            sb.AppendLine("More matches, not shown to keep this result small. Use search_item_content on one to read its relevant passages:");
+            foreach (LibraryItemWithChunks item in notShown)
+                sb.AppendLine($"- {item.Item.Name} ({item.Item.Type}), id: {item.Item.Id}, relevance {item.Score:F2}");
         }
 
         return sb.ToString();
@@ -133,8 +180,8 @@ public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingSer
         logger.Debug("LLM searching for: {Query} (type={Type}, limit={Limit})", query, typeFilter ?? "any", limit);
         await hubContext.Clients.Client(connectionId).ChatToolStatus("search_library", $"Searching: {query}");
 
-        List<LibraryItemWithChunks> results = await libraryService.SearchContentAsync(query, limit, idsFilter, typeFilter);
-        string formatted = await FormatSearchResultsAsync(results, userQuestion, query, ct);
+        List<LibraryItemWithChunks> results = await libraryService.SearchContentAsync(query, limit, idsFilter, typeFilter, crop: false);
+        string formatted = FormatSearchResults(results);
         logger.Verbose("Search tool result: {Result}", formatted);
         return formatted;
     }
@@ -308,7 +355,7 @@ public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingSer
 
         await hubContext.Clients.Client(connectionId).ChatToolStatus("search_item_content", $"Searching item content: {query}");
 
-        List<LibraryItemWithChunks> results = await libraryService.SearchContentAsync(query, 1, [itemId], type, chunksPerParent: 8);
+        List<LibraryItemWithChunks> results = await libraryService.SearchContentAsync(query, 1, [itemId], type, chunksPerParent: 8, crop: false);
         LibraryItemWithChunks? match = results.FirstOrDefault(r => r.Item.Id == itemId);
 
         if (match == null || match.MatchedChunks.Count == 0)

@@ -183,7 +183,6 @@ namespace KnowledgeBank
             builder.Services.AddSingleton<MistralStatusService>();
             builder.Services.AddSingleton<MistralModelWatchService>();
             builder.Services.AddHostedService(sp => sp.GetRequiredService<MistralModelWatchService>());
-            builder.Services.AddSingleton<AiService>();
             builder.Services.AddSingleton<EmbeddingService>();
             builder.Services.AddScoped<IngestionService>();
             builder.Services.AddScoped<MetadataExtractionService>();

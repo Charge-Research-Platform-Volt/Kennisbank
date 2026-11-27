@@ -53,7 +53,7 @@ public static class ChatToolDefinitions
 
     public static readonly MistralFunction SearchItemContent = new(
         "search_item_content",
-        "Search within a specific library item's full indexed content for more detail than the initial search_library result summary provided. Use this after search_library or get_item_details has identified a relevant item and you need deeper or more specific information from it than the summary gave you. Most useful for resources with full document text — persons and organisations have limited indexed content beyond their description.",
+        "Search within a specific library item's full indexed content and return up to 8 relevant passages, verbatim. Use this after search_library or get_item_details has identified a relevant item and you need more of it than the search result showed, or to read a hit listed under \"More matches\". Most useful for resources with full document text — persons and organisations have limited indexed content beyond their description.",
         new
         {
             type = "object",

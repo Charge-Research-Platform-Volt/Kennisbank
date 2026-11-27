@@ -111,7 +111,7 @@ public class ChunkSearchIndexService(MeilisearchClient client)
             .ToList();
     }
 
-    public async Task<List<ChunkSearchResult>> SearchAsync(string query, float[] queryEmbedding, int limit, Guid[]? parentIdFilter = null, string? typeFilter = null, Guid[]? excludeParentIds = null, int chunksPerParent = 3)
+    public async Task<List<ChunkSearchResult>> SearchAsync(string query, float[] queryEmbedding, int limit, Guid[]? parentIdFilter = null, string? typeFilter = null, Guid[]? excludeParentIds = null, int chunksPerParent = 3, bool crop = true)
     {
         List<string> clauses = [];
 
@@ -152,13 +152,18 @@ public class ChunkSearchIndexService(MeilisearchClient client)
             Hybrid = new HybridSearch { Embedder = "default", SemanticRatio = semanticRatio },
             Filter = parentsClause,
             ShowRankingScore = true,
-            AttributesToCrop = ["chunkText"],
-            CropLength = 30,
-            AttributesToHighlight = ["chunkText"],
-            HighlightPreTag = "\u0001",
-            HighlightPostTag = "\u0002",
             Limit = rankedParents.Count * chunksPerParent
         };
+
+        // Cropped, highlighed snippets are for library search UI. The chat needs the whole chunk
+        if (crop)
+        {
+            snippetQuery.AttributesToCrop = ["chunkText"];
+            snippetQuery.CropLength = 30;
+            snippetQuery.AttributesToHighlight = ["chunkText"];
+            snippetQuery.HighlightPreTag = "\u0001";
+            snippetQuery.HighlightPostTag = "\u0002";
+        }
 
         var snippetResult = (SearchResult<ChunkSearchDocument>)await client.Index(IndexName).SearchAsync<ChunkSearchDocument>(query, snippetQuery);
 
@@ -171,7 +176,7 @@ public class ChunkSearchIndexService(MeilisearchClient client)
             {
                 ParentId = Guid.Parse(g.Key.ParentId),
                 ParentType = g.Key.ParentType,
-                MatchedChunks = g.OrderByDescending(c => c.RankingScore).Take(chunksPerParent).Select(c => c.Formatted?.ChunkText ?? c.ChunkText).ToList(),
+                MatchedChunks = g.OrderByDescending(c => c.RankingScore).Take(chunksPerParent).Select(c => crop ? (c.Formatted?.ChunkText ?? c.ChunkText) : c.ChunkText).ToList(),
                 Score = scoreByParent[g.Key.ParentId]
             })
             .OrderBy(r => order[r.ParentId.ToString()])
