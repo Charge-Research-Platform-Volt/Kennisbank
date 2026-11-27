@@ -66,13 +66,13 @@ public class MistralHttpClient
     private readonly HttpClient textHttpClient;
     private readonly HttpClient filesHttpClient;
     private readonly string smallModelName;
-    private readonly string mediumModelName;
+    private readonly string largeModelName;
     private readonly MistralStatusService mistralStatusService;
     private readonly UsageMetrics usageMetrics;
     private readonly Serilog.ILogger logger = Serilog.Log.ForContext<MistralHttpClient>();
 
     private readonly RequestTokenLimiter smallRateLimiter;
-    private readonly RequestTokenLimiter mediumRateLimiter;
+    private readonly RequestTokenLimiter largeRateLimiter;
     private readonly RollingWindowLimiter ocrPageLimiter;
 
     public MistralHttpClient(EnvironmentConfig environmentConfig, MistralStatusService mistralStatusService, UsageMetrics usageMetrics)
@@ -82,19 +82,19 @@ public class MistralHttpClient
 
         // Load values
         smallModelName = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_SMALL_MODEL_NAME);
-        mediumModelName = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_MEDIUM_MODEL_NAME);
+        largeModelName = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_LARGE_MODEL_NAME);
         Uri endpoint = new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_ENDPOINT).TrimEnd('/') + "/");
         string apiKey = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_API_KEY);
 
         int smallRpm = int.Parse(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_SMALL_REQUESTS_PER_MINUTE));
         int smallTpm = int.Parse(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_SMALL_TOKENS_PER_MINUTE));
-        int mediumRpm = int.Parse(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_MEDIUM_REQUESTS_PER_MINUTE));
-        int mediumTpm = int.Parse(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_MEDIUM_TOKENS_PER_MINUTE));
+        int largeRpm = int.Parse(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_LARGE_REQUESTS_PER_MINUTE));
+        int largeTpm = int.Parse(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_LARGE_TOKENS_PER_MINUTE));
         int ocrPpm = int.Parse(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_OCR_PAGES_PER_MINUTE));
 
         // Initialize request limiters
         smallRateLimiter = new RequestTokenLimiter((long)(smallRpm * SafetyMargin), (long)(smallTpm * SafetyMargin), LimiterWindow);
-        mediumRateLimiter = new RequestTokenLimiter((long)(mediumRpm * SafetyMargin), (long)(mediumTpm * SafetyMargin), LimiterWindow);
+        largeRateLimiter = new RequestTokenLimiter((long)(largeRpm * SafetyMargin), (long)(largeTpm * SafetyMargin), LimiterWindow);
         ocrPageLimiter = new RollingWindowLimiter((long)(ocrPpm * SafetyMargin), LimiterWindow);
 
         // Initialize HTTP Client for text
@@ -107,11 +107,11 @@ public class MistralHttpClient
     }
 
     private RequestTokenLimiter GetLimiter(string model)
-        => model == smallModelName ? smallRateLimiter : mediumRateLimiter;
+        => model == smallModelName ? smallRateLimiter : largeRateLimiter;
 
     public async Task<MistralCompletion> CompleteAsync(MistralChatRequest request, string? modelOverride = null, CancellationToken ct = default)
     {
-        string effectiveModel = modelOverride ?? mediumModelName;
+        string effectiveModel = modelOverride ?? largeModelName;
         Stopwatch stopwatch = Stopwatch.StartNew();
         string body = JsonSerializer.Serialize(BuildBody(request, modelOverride: modelOverride));
 
@@ -177,7 +177,7 @@ public class MistralHttpClient
 
     public async IAsyncEnumerable<MistralStreamChunk> StreamAsync(MistralChatRequest request, string? modelOverride = null, [EnumeratorCancellation] CancellationToken ct = default)
     {
-        string effectiveModel = modelOverride ?? mediumModelName;
+        string effectiveModel = modelOverride ?? largeModelName;
         Stopwatch stopwatch = Stopwatch.StartNew();
         string body = JsonSerializer.Serialize(BuildBody(request, stream: true, modelOverride: modelOverride));
 
@@ -590,7 +590,7 @@ public class MistralHttpClient
 
         return new
         {
-            model = modelOverride ?? mediumModelName,
+            model = modelOverride ?? largeModelName,
             messages = request.Messages,
             temperature = request.Temperature,
             reasoning_effort = request.ReasoningEffort == MistralReasoningEffort.Default ? null : EffortToString(request.ReasoningEffort),

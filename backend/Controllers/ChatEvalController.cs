@@ -38,7 +38,7 @@ public class ChatEvalController(
         List<ChatEvalCase> cases = request.Cases;
         ChatEvalRun run = new()
         {
-            Model = modelOverride ?? environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_MEDIUM_MODEL_NAME),
+            Model = modelOverride ?? environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_LARGE_MODEL_NAME),
             Label = string.IsNullOrWhiteSpace(request.Label) ? null : request.Label.Trim(),
             CasesTotal = cases.Count,
             Cases = JsonSerializer.Serialize(cases)

@@ -223,7 +223,7 @@
 			<span class="text-muted-foreground">Model (empty = the chat's current model)</span>
 			<Input
 				bind:value={model}
-				placeholder="e.g. mistral-large-4"
+				placeholder="e.g. mistral-medium-3-5"
 				disabled={running}
 				class="w-64"
 			/>

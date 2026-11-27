@@ -24,7 +24,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
 
 
     private readonly string smallModelName = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_SMALL_MODEL_NAME);
-    private readonly string mediumModelName = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_MEDIUM_MODEL_NAME);
+    private readonly string largeModelName = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_LARGE_MODEL_NAME);
 
     private const int EntityChunkSize = 16_000;
     private const int EntityChunkOverlap = 500;
@@ -691,7 +691,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
 
         if (allEntities.Count == 0) return;
 
-        // STEP 2: Entity QC (medium model) — uses enriched description as context
+        // STEP 2: Entity QC (large model) — uses enriched description as context
         StringBuilder qcSb = new();
         qcSb.AppendLine($"Document title: {metadata.Title}");
         qcSb.AppendLine($"Document description: {metadata.Description}");
@@ -719,7 +719,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
             else qcSb.AppendLine("Database candidates: none");
         }
 
-        EntityQcResult? qcResult = await CallLLMAsync<EntityQcResult>(EntityQcSystemPrompt, qcSb.ToString(), GetEntityQcJsonSchema(), modelOverride: mediumModelName, reasoningEffort: MistralReasoningEffort.High);
+        EntityQcResult? qcResult = await CallLLMAsync<EntityQcResult>(EntityQcSystemPrompt, qcSb.ToString(), GetEntityQcJsonSchema(), modelOverride: largeModelName, reasoningEffort: MistralReasoningEffort.High);
         if (qcResult == null) return;
 
         var decisionMap = qcResult.Decisions.ToDictionary(d => d.Name.Trim().ToLowerInvariant());

@@ -19,9 +19,7 @@ public class MistralModelWatchService(MistralHttpClient mistralClient, Environme
     [
         new("OCR", "mistral-ocr", environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_OCR_MODEL_NAME)),
         new("Small", "mistral-small", environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_SMALL_MODEL_NAME)),
-        new("Medium", "mistral-medium", environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_MEDIUM_MODEL_NAME)),
-        // Not used by the app. Pinned to the current default so it's flagged once Large 4 leaves preview and becomes -latest
-        new("Large", "mistral-large", "mistral-large-2512", UsedByApp: false)
+        new("Large", "mistral-large", environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_LARGE_MODEL_NAME))
     ];
 
     public IReadOnlyList<ModelFamilyStatus> Current { get; private set; } = [];
