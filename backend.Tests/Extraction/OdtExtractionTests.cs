@@ -7,7 +7,7 @@ namespace KnowledgeBank.Tests.Extraction;
 public class OdtExtractionTests
 {
     [Fact]
-    public void ReadsHeadingsAndParagraphs_OnePerLine()
+    public void ReadsHeadingsAsMarkdown_AndParagraphsAsBlocks()
     {
         string text = Extract("""
             <text:h text:outline-level="1">Minutes steering group</text:h>
@@ -15,7 +15,7 @@ public class OdtExtractionTests
             <text:p>Decision: <text:span text:style-name="Bold">go</text:span> for phase two.</text:p>
             """);
 
-        Assert.Equal(["Minutes steering group", "Present: Anna, Bram", "Decision: go for phase two."], Lines(text));
+        Assert.Equal("# Minutes steering group\n\nPresent: Anna, Bram\n\nDecision: go for phase two.", text);
     }
 
     [Fact]
@@ -32,17 +32,52 @@ public class OdtExtractionTests
     }
 
     [Fact]
-    public void ReadsFootnotesOnce_AsTheirOwnLine()
+    public void ReadsFootnotesOnce_AsMarkerAndNoteAtTheEnd()
     {
         string text = Extract("""
-            <text:p>Budget overrun<text:note text:note-class="footnote"><text:note-body><text:p>See appendix B</text:p></text:note-body></text:note> in Q3.</text:p>
+            <text:p>Budget overrun<text:note text:note-class="footnote"><text:note-citation>1</text:note-citation><text:note-body><text:p>See appendix B</text:p></text:note-body></text:note> in Q3.</text:p>
+            <text:p>Next paragraph.</text:p>
             """);
 
-        Assert.Equal(["Budget overrun in Q3.", "See appendix B"], Lines(text));
+        Assert.Equal("Budget overrun[^1] in Q3.\n\nNext paragraph.\n\n## Notes\n\n[^1]: See appendix B", text);
     }
 
     [Fact]
-    public void ReadsTableCells()
+    public void FootnoteWithoutCitation_IsNumberedInOrder()
+    {
+        string text = Extract("""
+            <text:p>A<text:note><text:note-body><text:p>first</text:p></text:note-body></text:note> and B<text:note><text:note-body><text:p>second</text:p></text:note-body></text:note>.</text:p>
+            """);
+
+        Assert.Contains("A[^1] and B[^2].", text);
+        Assert.EndsWith("[^1]: first\n[^2]: second", text);
+    }
+
+    [Fact]
+    public void HeadingLevels_FollowTheOutlineLevel()
+    {
+        string text = Extract("""
+            <text:h text:outline-level="2">Methods</text:h>
+            <text:h text:outline-level="9">Deep</text:h>
+            <text:h>No level</text:h>
+            """);
+
+        Assert.Equal("## Methods\n\n###### Deep\n\n# No level", text);
+    }
+
+    [Fact]
+    public void ListItems_GetADash()
+    {
+        string text = Extract("""
+            <text:list><text:list-item><text:p>first</text:p></text:list-item><text:list-item><text:p>second</text:p></text:list-item></text:list>
+            <text:p>after</text:p>
+            """);
+
+        Assert.Equal("- first\n\n- second\n\nafter", text);
+    }
+
+    [Fact]
+    public void ReadsTablesAsRows()
     {
         string text = Extract("""
             <table:table>
@@ -50,10 +85,16 @@ public class OdtExtractionTests
                 <table:table-cell><text:p>Action</text:p></table:table-cell>
                 <table:table-cell><text:p>Owner</text:p></table:table-cell>
               </table:table-row>
+              <table:table-rows>
+                <table:table-row>
+                  <table:table-cell><text:p>Send minutes</text:p><text:p>to everyone</text:p></table:table-cell>
+                  <table:table-cell><text:p>Anna</text:p></table:table-cell>
+                </table:table-row>
+              </table:table-rows>
             </table:table>
             """);
 
-        Assert.Equal(["Action", "Owner"], Lines(text));
+        Assert.Equal("Action | Owner\nSend minutes to everyone | Anna", text);
     }
 
     [Fact]

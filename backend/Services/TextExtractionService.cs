@@ -1,6 +1,8 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-using DocumentFormat.OpenXml.Presentation;
+using DocumentFormat.OpenXml;
+using W = DocumentFormat.OpenXml.Wordprocessing;
+using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
+using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 using ClosedXML.Excel;
 using System.Text;
 using KnowledgeBank.Utils;
@@ -13,6 +15,7 @@ using KnowledgeBank.Services.Background;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Xml.Linq;
+using DocumentFormat.OpenXml.Packaging;
 
 namespace KnowledgeBank.Services;
 
@@ -31,12 +34,19 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
     /// <param name="fileExtension">File extension (e.g. ".pdf", ".docx")</param>
     /// <returns>Extracted text content</returns>
     public async Task<string> ExtractTextFromFileAsync(Stream stream, string fileExtension)
+        => (await ExtractFileAsync(stream, fileExtension)).Text;
+
+    /// <summary>
+    /// Extracts a document with the best method for its time. PDFs and images (OCR) and pptx (slides) also say where
+    /// each page or slide starts; other formats only have text.
+    /// </summary>
+    private async Task<OcrResult> ExtractFileAsync(Stream stream, string fileExtension)
     {
         fileExtension = fileExtension.ToLowerInvariant();
 
         logger.LogInformation("Extracting text from {FileType} document", fileExtension);
 
-        // Ensure stream is seekable — HTTP streams are not
+        // Ensure stream is seekable -- HTTP streams are not
         if (!stream.CanSeek)
         {
             MemoryStream ms = new();
@@ -49,14 +59,14 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         {
             return fileExtension switch
             {
-                ".pdf" => (await ExtractWithMistralOCR(stream, fileExtension)).Text,
-                ".txt" => await ExtractFromPlainText(stream),
-                ".docx" => ExtractWithOpenXmlDocx(stream),
-                ".odt" => ExtractOdt(stream),
-                ".pptx" => ExtractWithOpenXmlPptx(stream),
-                ".xlsx" => ExtractWithClosedXmlXlsx(stream),
-                ".html" => await ExtractHtmlFileAsync(stream),
-                _ when Filetype.SupportedImage(fileExtension) => (await ExtractWithMistralOCR(stream, fileExtension)).Text,
+                ".pdf" => await ExtractWithMistralOCR(stream, fileExtension),
+                ".txt" => new OcrResult { Text = await ExtractFromPlainText(stream) },
+                ".docx" => new OcrResult { Text = ExtractDocx(stream) },
+                ".odt" => new OcrResult { Text = ExtractOdt(stream) },
+                ".pptx" => ExtractPptx(stream),
+                ".xlsx" => new OcrResult { Text = ExtractWithClosedXmlXlsx(stream) },
+                ".html" => new OcrResult { Text = await ExtractHtmlFileAsync(stream) },
+                _ when Filetype.SupportedImage(fileExtension) => await ExtractWithMistralOCR(stream, fileExtension),
                 _ => throw new NotSupportedException($"Unsupported file type: {fileExtension}")
             };
         }
@@ -75,7 +85,7 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
     public async Task<OcrResult> ExtractOcrResultFromFileAsync(Stream stream, string fileExtension, string? bucketName = null, string? fileId = null)
     {
         bool isOcr = string.Equals(fileExtension, ".pdf", StringComparison.OrdinalIgnoreCase) || Filetype.SupportedImage(fileExtension);
-        if (!isOcr) return new OcrResult { Text = await ExtractTextFromFileAsync(stream, fileExtension) };
+        if (!isOcr) return await ExtractFileAsync(stream, fileExtension);
 
         bool canCache = bucketName != null && fileId != null;
         string modelId = await ResolveOcrModelIdAsync();
@@ -219,32 +229,228 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         return result.TextContent ?? "";
     }
 
-    private static string ExtractWithOpenXmlDocx(Stream stream)
+    /// <summary>
+    /// Word documents as markdown-like text: headings as # (found by the style's built-in name, which Word keeps in
+    /// every language, so Dutch "Kop 1" counts too), list items as "- ", table rows as cells joined by " | ", and
+    /// footnotes and endnotes at the end, referenced inline as [^n]. Blocks are separated by a blank line, so chunks
+    /// and passages break between paragraphs. Only visible text is read: deleted tracked changes and field codes are
+    /// their own element types and are left out.
+    /// </summary>
+    internal static string ExtractDocx(Stream stream)
     {
         stream.Position = 0;
-        using WordprocessingDocument doc = WordprocessingDocument.Open(stream, false);
-        var body = doc.MainDocumentPart?.Document?.Body;
+        using WordprocessingDocument document = WordprocessingDocument.Open(stream, false);
+        MainDocumentPart? main = document.MainDocumentPart;
+        EnsureNotTooDeep(main, main?.FootnotesPart, main?.EndnotesPart);
+        W.Body? body = main?.Document?.Body;
+        if (main == null || body == null) return string.Empty;
 
-        if (body == null) return string.Empty;
+        Dictionary<string, int> headingLevels = DocxHeadingLevels(main);
+        List<string> blocks = [];
+        AppendDocxBlocks(body, headingLevels, blocks);
 
-        StringBuilder sb = new();
+        AppendDocxNotes("Footnotes", main.FootnotesPart?.Footnotes?.Elements<W.Footnote>(), "", blocks);
+        AppendDocxNotes("Endnotes", main.EndnotesPart?.Endnotes?.Elements<W.Endnote>(), "e", blocks);
 
-        foreach (var para in body.Descendants<Paragraph>())
+        return string.Join("\n\n", blocks);
+    }
+
+    // Every walk over document content in this file uses an explicit stack instead of recursion: tables, text boxes and
+    // content controls can nest thousands deep (in broken or crafted files), and a stack overflow can't be caught, so it
+    // would take the whole process down
+    private static void AppendDocxBlocks(OpenXmlElement container, Dictionary<string, int> headingLevels, List<string> blocks)
+    {
+        Stack<OpenXmlElement> stack = new(container.ChildElements.Reverse());
+
+        while (stack.Count > 0)
         {
-            string text = para.InnerText;
+            switch (stack.Pop())
+            {
+                case W.Paragraph paragraph:
+                    string text = DocxText(paragraph).Trim();
+                    if (text.Length == 0) break;
 
-            if (!string.IsNullOrWhiteSpace(text))
-                sb.AppendLine(text);
+                    if (DocxHeadingLevel(paragraph, headingLevels) is int level)
+                        blocks.Add($"{new string('#', level)} {text.ReplaceLineEndings(" ")}");
+                    else if (paragraph.ParagraphProperties?.NumberingProperties != null)
+                        blocks.Add($"- {text}");
+                    else
+                        blocks.Add(text);
+                    break;
+
+                case W.Table table:
+                    string rows = DocxTable(table);
+                    if (rows.Length > 0) blocks.Add(rows);
+                    break;
+
+                // Content controls, custom XML and the like wrap ordinary paragraphs and tables
+                case OpenXmlElement wrapper:
+                    foreach (OpenXmlElement child in wrapper.ChildElements.Reverse()) stack.Push(child);
+                    break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Paragraph styles that are headings, by style id. Matched on the built-in name ("heading 1", "Title"), which
+    /// Word stores in English whatever the UI language (only the style id is localised, e.g. "Kop1" or "berschrift1"),
+    /// else on the style's outline level. A custom style based on a heading is a heading too.
+    /// </summary>
+    private static Dictionary<string, int> DocxHeadingLevels(MainDocumentPart main)
+    {
+        Dictionary<string, W.Style> styles = (main.StyleDefinitionsPart?.Styles?.Elements<W.Style>() ?? [])
+            .Where(s => s.StyleId?.Value != null)
+            .GroupBy(s => s.StyleId!.Value!)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        Dictionary<string, int> levels = [];
+        foreach (string id in styles.Keys)
+            if (StyleHeadingLevel(id, styles, depth: 0) is int level)
+                levels[id] = level;
+
+        return levels;
+    }
+
+    // The depth guards against a basedOn cycle in a broken file
+    private static int? StyleHeadingLevel(string id, Dictionary<string, W.Style> styles, int depth)
+    {
+        if (depth > 10 || !styles.TryGetValue(id, out W.Style? style)) return null;
+
+        string name = style.StyleName?.Val?.Value?.ToLowerInvariant() ?? "";
+        if (name == "title") return 1;
+        if (name.StartsWith("heading ") && int.TryParse(name["heading ".Length..], out int level) && level is >= 1 and <= 9)
+            return Math.Min(level, 6);
+
+        // Its own outline level wins over the parent's; 9 means body text, so that stops the inheritance
+        if (style.StyleParagraphProperties?.OutlineLevel?.Val?.Value is int outline)
+            return outline < 9 ? Math.Min(outline + 1, 6) : null;
+
+        return style.BasedOn?.Val?.Value is string parent ? StyleHeadingLevel(parent, styles, depth + 1) : null;
+    }
+
+    // An outline level set on the paragraph itself wins over its style; level 9 means body text
+    private static int? DocxHeadingLevel(W.Paragraph paragraph, Dictionary<string, int> headingLevels)
+    {
+        W.ParagraphProperties? properties = paragraph.ParagraphProperties;
+
+        if (properties?.OutlineLevel?.Val?.Value is int outline)
+            return outline < 9 ? Math.Min(outline + 1, 6) : null;
+
+        return properties?.ParagraphStyleId?.Val?.Value is string styleId && headingLevels.TryGetValue(styleId, out int level) ? level : null;
+    }
+
+    private const string WordNamespace = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+
+    // Real documents stay well under 100 levels; a table in a table in a text box is still only a few dozen
+    internal const int MaxXmlDepth = 1000;
+
+    /// <summary>
+    /// The OpenXML SDK parses absurdly deep XML very slowly: a 17 KB file nesting tables 5000 deep takes it ~25 s.
+    /// Parts are parsed on first access, so this reads their raw XML first (linear, and only once) and refuses a part
+    /// that nests too deep before the SDK starts on it.
+    /// </summary>
+    private static void EnsureNotTooDeep(params OpenXmlPart?[] parts)
+    {
+        foreach (OpenXmlPart? part in parts)
+        {
+            if (part == null) continue;
+
+            using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+            using System.Xml.XmlReader reader = System.Xml.XmlReader.Create(stream, new System.Xml.XmlReaderSettings { DtdProcessing = System.Xml.DtdProcessing.Prohibit });
+
+            while (reader.Read())
+                if (reader.Depth > MaxXmlDepth)
+                    throw new InvalidOperationException($"The document is nested more than {MaxXmlDepth} levels deep, which no real document does, so it isn't read");
+        }
+    }
+
+    private static string DocxText(OpenXmlElement root)
+    {
+        StringBuilder sb = new();
+        Stack<OpenXmlElement> stack = new(root.ChildElements.Reverse());
+
+        while (stack.Count > 0)
+        {
+            OpenXmlElement element = stack.Pop();
+
+            switch (element)
+            {
+                case W.Text text: sb.Append(text.Text); continue;
+                case W.TabChar: sb.Append('\t'); continue;
+                case W.Break or W.CarriageReturn: sb.Append('\n'); continue;
+                case W.NoBreakHyphen: sb.Append('-'); continue;
+                case W.FootnoteReference note: sb.Append($"[^{note.Id?.Value}]"); continue;
+                case W.EndnoteReference note: sb.Append($"[^e{note.Id?.Value}]"); continue;
+
+                // Text boxes and shapes are stored twice: as DrawingML, and as a VML fallback for old Word. Read only the first
+                case AlternateContentFallback: continue;
+
+                // Elements the SDK doesn't know (smart tags, from old Word) are read as unknown, text included
+                case OpenXmlUnknownElement unknown when unknown.LocalName == "t" && unknown.NamespaceUri == WordNamespace:
+                    sb.Append(unknown.InnerText);
+                    continue;
+
+                // A paragraph inside this one is a text box's or a cell's: it goes on its own line
+                case W.Paragraph:
+                    if (sb.Length > 0 && sb[^1] != '\n') sb.Append('\n');
+                    break;
+            }
+
+            foreach (OpenXmlElement child in element.ChildElements.Reverse()) stack.Push(child);
         }
 
         return sb.ToString();
     }
 
+    private static string DocxTable(W.Table table)
+        => string.Join("\n", OwnDescendants<W.TableRow>(table)
+            .Select(row => string.Join(" | ", OwnDescendants<W.TableCell>(row).Select(cell => OneLine(DocxText(cell)))))
+            .Where(line => line.Replace("|", "").Trim().Length > 0));
+
+    /// <summary>
+    /// Rows and cells can be wrapped in content controls (w:sdt), so they're found below any wrapper, but never inside
+    /// a nested table: that one belongs to its cell's text.
+    /// </summary>
+    private static List<T> OwnDescendants<T>(OpenXmlElement container) where T : OpenXmlElement
+    {
+        List<T> found = [];
+        Stack<OpenXmlElement> stack = new(container.ChildElements.Reverse());
+
+        while (stack.Count > 0)
+        {
+            OpenXmlElement element = stack.Pop();
+            if (element is T match) found.Add(match);
+            else if (element is not W.Table)
+                foreach (OpenXmlElement child in element.ChildElements.Reverse()) stack.Push(child);
+        }
+
+        return found;
+    }
+
+    private static void AppendDocxNotes(string heading, IEnumerable<W.FootnoteEndnoteType>? notes, string prefix, List<string> blocks)
+    {
+        // Ids below 1 are the separator lines Word puts between the text and the notes
+        List<string> lines = [.. (notes ?? [])
+            .Where(n => n.Id?.Value > 0)
+            .Select(n => (Id: n.Id!.Value, Text: OneLine(DocxText(n))))
+            .Where(n => n.Text.Length > 0)
+            .Select(n => $"[^{prefix}{n.Id}]: {n.Text}")];
+
+        if (lines.Count > 0)
+            blocks.Add($"## {heading}\n\n{string.Join("\n", lines)}");
+    }
+
+    private static string OneLine(string text) => Regex.Replace(text, @"\s+", " ").Trim();
+
     private static readonly XNamespace OdfText = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+    private static readonly XNamespace OdfOffice = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+    private static readonly XNamespace OdfTable = "urn:oasis:names:tc:opendocument:xmlns:table:1.0";
 
     /// <summary>
     /// OpenDocument text (LibreOffice's own format) is a zip whose content.xml holds the text, so like .docx it's
-    /// read directly: free and exact, no conversion or OCR. One line per paragraph or heading, table cells included.
+    /// read directly: free and exact, no conversion or OCR. The same shape as Word documents: headings as #, list
+    /// items as "- ", table rows as cells joined by " | ", notes at the end referenced inline as [^n], blocks
+    /// separated by a blank line.
     /// </summary>
     internal static string ExtractOdt(Stream stream)
     {
@@ -257,73 +463,198 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         using (Stream entryStream = entry.Open())
             content = XDocument.Load(entryStream, System.Xml.Linq.LoadOptions.PreserveWhitespace);
 
-        StringBuilder sb = new();
+        XElement? body = content.Descendants(OdfOffice + "text").FirstOrDefault();
+        if (body == null) return string.Empty;
 
-        foreach (XElement block in content.Descendants().Where(e => e.Name == OdfText + "p" || e.Name == OdfText + "h"))
-        {
-            StringBuilder line = new();
-            AppendOdtText(block, line);
-            string text = line.ToString().Trim();
+        List<string> blocks = [];
+        List<string> notes = [];
+        AppendOdtBlocks(body, blocks, notes);
 
-            if (!string.IsNullOrWhiteSpace(text))
-                sb.AppendLine(text);
-        }
+        if (notes.Count > 0)
+            blocks.Add($"## Notes\n\n{string.Join("\n", notes)}");
 
-        return sb.ToString();
+        return string.Join("\n\n", blocks);
     }
 
-    private static void AppendOdtText(XElement element, StringBuilder line)
+    private static void AppendOdtBlocks(XElement container, List<string> blocks, List<string> notes)
     {
-        foreach (XNode node in element.Nodes())
+        Stack<(XElement Element, bool InList)> stack = new(container.Elements().Reverse().Select(e => (e, false)));
+
+        while (stack.Count > 0)
         {
-            switch (node)
+            (XElement element, bool inList) = stack.Pop();
+
+            if (element.Name == OdfText + "h" || element.Name == OdfText + "p")
             {
-                // Runs of whitespace in ODF text count as one space; extra spaces are written as <text:s>
-                case XText text:
-                    line.Append(Regex.Replace(text.Value, @"\s+", " "));
-                    break;
-                case XElement child when child.Name == OdfText + "s":
-                    line.Append(' ', (int?)child.Attribute(OdfText + "c") ?? 1);
-                    break;
-                case XElement child when child.Name == OdfText + "tab":
-                    line.Append('\t');
-                    break;
-                case XElement child when child.Name == OdfText + "line-break":
-                    line.Append('\n');
-                    break;
-                // A footnote's paragraphs sit inside this one; they're read as their own blocks, so skip them here
-                case XElement child when child.Name == OdfText + "note":
-                    break;
-                case XElement child:
-                    AppendOdtText(child, line);
-                    break;
+                string text = OdtText(element, notes).Trim();
+                if (text.Length == 0) continue;
+
+                if (element.Name == OdfText + "h")
+                {
+                    int level = Math.Clamp((int?)element.Attribute(OdfText + "outline-level") ?? 1, 1, 6);
+                    blocks.Add($"{new string('#', level)} {text.ReplaceLineEndings(" ")}");
+                }
+                else blocks.Add(inList ? $"- {text}" : text);
+            }
+            else if (element.Name == OdfTable + "table")
+            {
+                string rows = string.Join("\n", element.Descendants(OdfTable + "table-row")
+                    .Select(row => string.Join(" | ", row.Elements(OdfTable + "table-cell").Select(cell => OneLine(OdtText(cell, notes)))))
+                    .Where(line => line.Replace("|", "").Trim().Length > 0));
+                if (rows.Length > 0) blocks.Add(rows);
+            }
+            else
+            {
+                bool childrenInList = inList || element.Name == OdfText + "list";
+                foreach (XElement child in element.Elements().Reverse()) stack.Push((child, childrenInList));
             }
         }
     }
 
-    private static string ExtractWithOpenXmlPptx(Stream stream)
+    /// <summary>
+    /// The text of a paragraph or cell. A footnote becomes a [^n] marker, and its text is collected into notes.
+    /// A note inside a note isn't valid ODF and is skipped, so reading a note's text never goes deeper than one level.
+    /// </summary>
+    private static string OdtText(XElement root, List<string> notes, bool inNote = false)
     {
-        stream.Position = 0;
-        using PresentationDocument pres = PresentationDocument.Open(stream, false);
-        var slideIds = pres.PresentationPart?.Presentation?.SlideIdList?.ChildElements;
+        StringBuilder line = new();
+        Stack<XNode> stack = new(root.Nodes().Reverse());
 
-        if (slideIds == null) return string.Empty;
-
-        StringBuilder sb = new();
-
-        foreach (SlideId slideId in slideIds.Cast<SlideId>())
+        while (stack.Count > 0)
         {
-            var slidePart = (SlidePart?)pres.PresentationPart?.GetPartById(slideId.RelationshipId!);
+            XNode node = stack.Pop();
 
-            if (slidePart == null || slidePart.Slide == null) continue;
+            // Runs of whitespace in ODF text count as one space; extra spaces are written as <text:s>
+            if (node is XText text)
+            {
+                line.Append(Regex.Replace(text.Value, @"\s+", " "));
+                continue;
+            }
+            if (node is not XElement element) continue;
 
-            foreach (var text in slidePart.Slide.Descendants<DocumentFormat.OpenXml.Drawing.Text>())
-                if (!string.IsNullOrWhiteSpace(text.Text))
-                    sb.AppendLine(text.Text);
+            if (element.Name == OdfText + "s")
+                line.Append(' ', Math.Clamp((int?)element.Attribute(OdfText + "c") ?? 1, 0, 100));
+            else if (element.Name == OdfText + "tab")
+                line.Append('\t');
+            else if (element.Name == OdfText + "line-break")
+                line.Append('\n');
+            else if (element.Name == OdfText + "note")
+            {
+                if (inNote) continue;
+
+                string marker = element.Element(OdfText + "note-citation")?.Value.Trim() is { Length: > 0 } citation ? citation : (notes.Count + 1).ToString();
+                string noteText = element.Element(OdfText + "note-body") is XElement noteBody ? OneLine(OdtText(noteBody, notes, inNote: true)) : "";
+                line.Append($"[^{marker}]");
+                if (noteText.Length > 0) notes.Add($"[^{marker}]: {noteText}");
+            }
+            else
+            {
+                // Paragraphs inside a cell or note follow each other on one line
+                if ((element.Name == OdfText + "p" || element.Name == OdfText + "h") && line.Length > 0 && !char.IsWhiteSpace(line[^1]))
+                    line.Append(' ');
+
+                foreach (XNode child in element.Nodes().Reverse()) stack.Push(child);
+            }
         }
 
-        return sb.ToString();
+        return line.ToString();
     }
+
+    /// <summary>
+    /// Each slide becomes a section, "## Slide n: title", followed by its text one paragraph per line, its tables and
+    /// its speaker notes. Where each slide starts goes in PageStarts, so passages show the slide number as their page.
+    /// A slide without text still gets a start, so the numbers stay aligned with the deck.
+    /// </summary>
+    internal static OcrResult ExtractPptx(Stream stream)
+    {
+        stream.Position = 0;
+        using PresentationDocument presentation = PresentationDocument.Open(stream, false);
+        PresentationPart? part = presentation.PresentationPart;
+        List<P.SlideId> slideIds = [.. part?.Presentation?.SlideIdList?.Elements<P.SlideId>() ?? []];
+
+        StringBuilder sb = new();
+        int[] slideStarts = new int[slideIds.Count];
+
+        for (int i = 0; i < slideIds.Count; i++)
+        {
+            slideStarts[i] = sb.Length;
+
+            if (slideIds[i].RelationshipId?.Value is not string relationshipId || part!.GetPartById(relationshipId) is not SlidePart slidePart)
+                continue;
+
+            EnsureNotTooDeep(slidePart, slidePart.NotesSlidePart);
+            if (slidePart.Slide is not P.Slide slide)
+                continue;
+
+            List<string> titles = [];
+            List<string> blocks = [];
+
+            // Document order, so the text follows the slide's shape tree
+            foreach (OpenXmlElement element in slide.Descendants().Where(e => e is P.Shape or A.Table or Dgm.RelationshipIds))
+            {
+                // SmartArt keeps its text in a diagram data part of its own, one point per box
+                if (element is Dgm.RelationshipIds diagram)
+                {
+                    if (diagram.DataPart?.Value is string dataId && slidePart.TryGetPartById(dataId, out OpenXmlPart? dataPart) && dataPart is DiagramDataPart data)
+                    {
+                        string points = string.Join("\n", (data.DataModelRoot?.Descendants<Dgm.TextBody>() ?? []).Select(PptxText).Where(t => t.Length > 0));
+                        if (points.Length > 0) blocks.Add(points);
+                    }
+                    continue;
+                }
+
+                if (element is A.Table table)
+                {
+                    string rows = string.Join("\n", table.Elements<A.TableRow>()
+                        .Select(row => string.Join(" | ", row.Elements<A.TableCell>().Select(cell => OneLine(PptxText(cell.TextBody)))))
+                        .Where(line => line.Replace("|", "").Trim().Length > 0));
+                    if (rows.Length > 0) blocks.Add(rows);
+                    continue;
+                }
+
+                P.Shape shape = (P.Shape)element;
+                P.PlaceholderValues? type = PlaceholderType(shape);
+                if (type == P.PlaceholderValues.SlideNumber || type == P.PlaceholderValues.Footer || type == P.PlaceholderValues.DateAndTime) continue;
+
+                string text = PptxText(shape.TextBody);
+                if (text.Length == 0) continue;
+
+                if (type == P.PlaceholderValues.Title || type == P.PlaceholderValues.CenteredTitle) titles.Add(text);
+                else blocks.Add(text);
+            }
+
+            string notes = string.Join("\n", (slidePart.NotesSlidePart?.NotesSlide?.Descendants<P.Shape>() ?? [])
+                .Where(s => PlaceholderType(s) == P.PlaceholderValues.Body)
+                .Select(s => PptxText(s.TextBody))
+                .Where(t => t.Length > 0));
+
+            if (titles.Count == 0 && blocks.Count == 0 && notes.Length == 0) continue;
+
+            sb.Append($"## Slide {i + 1}");
+            if (titles.Count > 0) sb.Append($": {string.Join(" ", titles).ReplaceLineEndings(" ")}");
+            sb.Append("\n\n");
+            foreach (string block in blocks) sb.Append(block).Append("\n\n");
+            if (notes.Length > 0) sb.Append("Speaker notes:\n").Append(notes).Append("\n\n");
+        }
+
+        // Without any text there's nothing to index, not even the slide headings
+        return sb.Length == 0 ? new OcrResult() : new OcrResult { Text = sb.ToString(), PageStarts = slideStarts };
+    }
+
+    private static P.PlaceholderValues? PlaceholderType(P.Shape shape)
+        => shape.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape?.Type?.Value;
+
+    /// <summary>One line per paragraph; a line break inside a paragraph stays a line break</summary>
+    private static string PptxText(OpenXmlElement? textBody)
+        => textBody == null ? "" : string.Join("\n", textBody.Elements<A.Paragraph>()
+            .Select(p => string.Concat(p.Elements().Select(e => e switch
+            {
+                A.Run run => run.Text?.Text ?? "",
+                A.Field field => field.Text?.Text ?? "",
+                A.Break => "\n",
+                _ => ""
+            })).Trim())
+            .Where(p => p.Length > 0));
     
     private static string ExtractWithClosedXmlXlsx(Stream stream)
     {
