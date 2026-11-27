@@ -26,6 +26,13 @@ public class ResourceChunk
     [Column("chunk-part")]
     public required int ChunkPart { get; set; }
 
+    /// <summary>Where the chunk sits in the resource's stored text (resource-texts): Text[StartChar..EndChar]. Null for the metadata chunk.</summary>
+    [Column("start-char")]
+    public int? StartChar { get; set; }
+    
+    [Column("end-char")]
+    public int? EndChar { get; set; }
+
     [Column("embedding")]
     public PgVector? Embedding { get; set; }
 

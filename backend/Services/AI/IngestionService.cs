@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.SignalR;
 using KnowledgeBank.Hubs;
 using KnowledgeBank.Services.Storage;
 using KnowledgeBank.Models.ProjectDocuments;
+using System.Text.RegularExpressions;
 
 namespace KnowledgeBank.Services.AI;
 
@@ -32,6 +33,8 @@ public class IngestionService(
     private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
 
     public const int MaxChunkTokens = 512;
+    private const int MaxContextLineChars = 200;
+    private static readonly Regex MarkdownHeading = new(@"^#{1,6}[ \t]+(.+?)[ \t#]*$", RegexOptions.Multiline | RegexOptions.Compiled);
 
     public async Task RunResourcePipelineAsync(Guid id, string? fileType = null, Stream? fileStream = null)
     {
@@ -43,60 +46,16 @@ public class IngestionService(
 
             var (richMetadata, resource) = await BuildRichMetadataChunkAsync(id);
 
-            if (string.IsNullOrWhiteSpace(richMetadata))
+            if (string.IsNullOrWhiteSpace(richMetadata) || resource == null)
                 throw new InvalidOperationException($"Resource {id} could not be found or has no metadata to embed.");
 
-            List<string> chunks = [richMetadata];
-            List<string> contentChunks = [];
-            bool hasContentSource = false;
+            ResourceText? content = await GetContentAsync(resource, fileType, fileStream);
 
-            if (fileStream != null)
-            {
-                hasContentSource = true;
+            List<ResourceChunkInput> chunks = [new(richMetadata, ChunkType.MetaData, 0)];
+            if (content != null)
+                chunks.AddRange(BuildContentChunks(resource.Title, content.Text, firstPart: 1));
 
-                string ext = fileType != null
-                    ? (fileType.StartsWith('.') ? fileType : $".{fileType}")
-                    : ".pdf";
-
-                OcrResult ocrResult = await textExtractionService.ExtractOcrResultFromFileAsync(fileStream, ext, bucketName, id.ToString());
-
-                if (string.IsNullOrEmpty(ocrResult.Text))
-                    logger.Warning("No text extracted from file for resource {Id}", id);
-                else
-                    contentChunks = SplitTextIntoChunks(ocrResult.Text, markdownSplit: true);
-            }
-            else if (resource?.FileType == "website" && !string.IsNullOrEmpty(resource.SourceUrl))
-            {
-                hasContentSource = true;
-
-                WebscrapeResult result = await textExtractionService.ExtractTextFromWebAsync(resource.SourceUrl);
-
-                if (!string.IsNullOrWhiteSpace(result.TextContent))
-                    contentChunks = SplitTextIntoChunks(result.TextContent, markdownSplit: false);
-                else
-                    logger.Warning("No text extracted from website for resource {Id}", id);
-            }
-
-            // Extraction came back empty, so rather than wiping the content
-            // that was embedded successfully before, re-embed the chunk text we already
-            // have stored.
-            if (hasContentSource && contentChunks.Count == 0)
-            {
-                contentChunks = await vectorStore.GetContentChunkTextsAsync(id);
-
-                if (contentChunks.Count > 0)
-                    logger.Warning("Reusing {Count} stored content chunks for resource {Id} because extraction returned no text", contentChunks.Count, id);
-            }
-
-            chunks.AddRange(contentChunks);
-
-            var chunkData = chunks.Select((text, index) => (
-                Text: text,
-                Type: index == 0 ? ChunkType.MetaData : ChunkType.ContentText,
-                Part: index
-            )).ToList();
-
-            await vectorStore.ReplaceResourcePointsAsync(id, chunkData);
+            await vectorStore.ReplaceResourcePointsAsync(id, chunks, content);
 
             await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Completed);
             logger.Information("Resource pipeline completed for ID: {Id}", id);
@@ -106,6 +65,103 @@ public class IngestionService(
             await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Failed, DescribeFailure(ex));
         }
     }
+
+    /// <summary>
+    /// The resource's full text, or null when it has none (metadata only). A file is extracted again (OCR through its
+    /// cache). A website reuses its stored text and is only scraped when there is none yet, so a re-embed doesn't depend
+    /// on the page still being online and unchanged. When extraction comes back empty, the stored text is kept, so a
+    /// failed extraction never wipes content that was indexed before.
+    /// </summary>
+    private async Task<ResourceText?> GetContentAsync(Resource resource, string? fileType, Stream? fileStream)
+    {
+        bool isWebsite = resource.FileType == "website" && !string.IsNullOrEmpty(resource.SourceUrl);
+        if (fileStream == null && !isWebsite) return null;
+
+        ResourceText? stored = await vectorStore.GetResourceTextAsync(resource.Id);
+        if (fileStream == null && stored != null) return stored;
+
+        string? text = null;
+        int[]? pageStarts = null;
+
+        if (fileStream != null)
+        {
+            string ext = fileType != null ? (fileType.StartsWith('.') ? fileType : $".{fileType}") : ".pdf";
+            OcrResult ocrResult = await textExtractionService.ExtractOcrResultFromFileAsync(fileStream, ext, bucketName, resource.Id.ToString());
+            text = ocrResult.Text;
+            pageStarts = ocrResult.PageStarts;
+        }
+        else
+        {
+            WebscrapeResult result = await textExtractionService.ExtractTextFromWebAsync(resource.SourceUrl!);
+            text = result.TextContent;
+        }
+
+        if (!string.IsNullOrWhiteSpace(text))
+            return new ResourceText { ResourceId = resource.Id, Text = text, PageStarts = pageStarts, ExtractedAt = DateTime.UtcNow };
+
+        if (stored != null)
+        {
+            logger.Warning("No text extracted for resource {Id}, keeping its stored text", resource.Id);
+            return stored;
+        }
+
+        // Indexed before full texts were stored: rebuild a text from the old chunks, for the same reason.
+        // Can go once every resource has a stored text
+        List<string> oldChunks = await vectorStore.GetContentChunkTextsAsync(resource.Id);
+        if (oldChunks.Count > 0)
+        {
+            logger.Warning("No text extracted for resource {Id}, rebuilding it from {Count} stored chunks", resource.Id, oldChunks.Count);
+            return new ResourceText { ResourceId = resource.Id, Text = string.Join("\n\n", oldChunks), ExtractedAt = DateTime.UtcNow };
+        }
+
+        logger.Warning("No text extracted for resource {Id}", resource.Id);
+        return null;
+    }
+
+    /// <summary>
+    /// Cuts the text into chunks and gives each one context for embedding and keyword search: the document title and
+    /// the nearest markdown heading at or above where the chunk's own text starts (after its overlap with the previous
+    /// chunk). The positions are those of the bare chunk in the text, so what's shown later can come straight from the
+    /// stored text, without this context.
+    /// </summary>
+    internal static List<ResourceChunkInput> BuildContentChunks(string title, string text, int firstPart)
+    {
+        List<(int Position, string Heading)> headings = [.. MarkdownHeading.Matches(text).Select(m => (m.Index, m.Groups[1].Value.Trim()))];
+        string? documentLine = string.IsNullOrWhiteSpace(title) ? null : $"Document: {Truncate(title.Trim(), MaxContextLineChars)}";
+
+        List<ResourceChunkInput> chunks = [];
+        int headingIndex = -1;
+        int previousEnd = 0;
+
+        foreach (ChunkSpan span in DocumentChunker.Split(text))
+        {
+            // The section is taken where the chunk's own text starts, just after the previous chunk, not at its overlap.
+            // Otherwise the first chunk of a section, which usually opens in the previous section's tail, gets that heading
+            int anchor = previousEnd;
+            while (anchor < span.End && char.IsWhiteSpace(text[anchor])) anchor++;
+            anchor = Math.Clamp(anchor, span.Start, span.End - 1);
+            previousEnd = span.End;
+
+            while (headingIndex + 1 < headings.Count && headings[headingIndex + 1].Position <= anchor)
+                headingIndex++;
+
+            string? sectionLine = headingIndex >= 0 ? $"Section: {Truncate(headings[headingIndex].Heading, MaxContextLineChars)}" : null;
+            string context = string.Join("\n", new[] { documentLine, sectionLine }.Where(l => l != null));
+            string chunkText = text[span.Start..span.End];
+
+            chunks.Add(new ResourceChunkInput(
+                context.Length > 0 ? $"{context}\n\n{chunkText}" : chunkText,
+                ChunkType.ContentText,
+                firstPart + chunks.Count,
+                span.Start,
+                span.End
+            ));
+        }
+
+        return chunks;
+    }
+
+    private static string Truncate(string value, int maxChars) => value.Length <= maxChars ? value : value[..maxChars].TrimEnd() + "...";
 
     /// <summary>
     /// Runs the resource pipeline for an existing resource, fetching its file from storage when it has one.

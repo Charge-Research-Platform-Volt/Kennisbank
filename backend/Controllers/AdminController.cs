@@ -327,6 +327,8 @@ public class AdminController(
                 ChunkType = c.ChunkType.ToString(),
                 ChunkPart = c.ChunkPart,
                 ChunkText = c.ChunkText,
+                StartChar = c.StartChar,
+                EndChar = c.EndChar,
                 Vectors = new() { ["default"] = c.Embedding!.ToArray() }
             });
 

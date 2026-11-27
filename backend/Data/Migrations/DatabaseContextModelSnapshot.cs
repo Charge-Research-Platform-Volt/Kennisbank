@@ -1181,9 +1181,17 @@ namespace KnowledgeBank.Data.Migrations
                         .HasColumnType("vector(1024)")
                         .HasColumnName("embedding");
 
+                    b.Property<int?>("EndChar")
+                        .HasColumnType("integer")
+                        .HasColumnName("end-char");
+
                     b.Property<Guid>("ResourceId")
                         .HasColumnType("uuid")
                         .HasColumnName("resource-id");
+
+                    b.Property<int?>("StartChar")
+                        .HasColumnType("integer")
+                        .HasColumnName("start-char");
 
                     b.HasKey("Id");
 

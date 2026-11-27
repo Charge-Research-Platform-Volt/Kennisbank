@@ -11,7 +11,7 @@ namespace KnowledgeBank.Services.Vector;
 public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, EmbeddingService aiClientProvider, ChunkSearchIndexService chunkSearchIndexService, LibrarySearchIndexService librarySearchIndexService, ProjectDocumentChunkSearchIndexService projectDocumentChunkSearchIndexService) : IVectorStore
 {
     /// <inheritdoc/>
-    public async Task ReplaceResourcePointsAsync(Guid resourceId, List<(string Text, ChunkType Type, int Part)> chunks)
+    public async Task ReplaceResourcePointsAsync(Guid resourceId, List<ResourceChunkInput> chunks, ResourceText? text)
     {
         // Embed first
         float[][] embeddings = await aiClientProvider.GenerateEmbeddings(chunks.Select(c => c.Text).ToList());
@@ -22,7 +22,7 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, E
 
         for (int i = 0; i < chunks.Count; i++)
         {
-            var chunk = chunks[i];
+            ResourceChunkInput chunk = chunks[i];
             float[] embeddingArray = embeddings[i];
 
             ResourceChunk resourceChunk = new()
@@ -32,6 +32,8 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, E
                 ChunkType = chunk.Type,
                 ChunkText = chunk.Text,
                 ChunkPart = chunk.Part,
+                StartChar = chunk.StartChar,
+                EndChar = chunk.EndChar,
                 Embedding = new PgVector(embeddingArray),
                 CreatedAt = DateTime.UtcNow
             };
@@ -45,6 +47,8 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, E
                 ChunkType = chunk.Type.ToString(),
                 ChunkPart = chunk.Part,
                 ChunkText = chunk.Text,
+                StartChar = chunk.StartChar,
+                EndChar = chunk.EndChar,
                 Vectors = new() { ["default"] = embeddingArray }
             });
 
@@ -52,10 +56,12 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, E
                 metadataEmbedding = embeddingArray;
         }
 
-        // Swap old for new in one transaction
+        // Swap old for new in one transaction, the text along with the chunks since their positions point into it
         await using (var transaction = await database.Database.BeginTransactionAsync())
         {
             await database.ResourceChunks.Where(c => c.ResourceId == resourceId).ExecuteDeleteAsync();
+            await database.ResourceTexts.Where(t => t.ResourceId == resourceId).ExecuteDeleteAsync();
+            if (text != null) database.ResourceTexts.Add(text);
             await database.SaveChangesAsync();
             await transaction.CommitAsync();
         }
@@ -67,6 +73,13 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, E
         // Send metadata embeddings to Meilisearch
         if (metadataEmbedding != null)
             await librarySearchIndexService.UpdateVectorAsync(resourceId, metadataEmbedding);
+    }
+
+    /// <inheritdoc />
+    public async Task<ResourceText?> GetResourceTextAsync(Guid resourceId)
+    {
+        await using var database = await dbFactory.CreateDbContextAsync();
+        return await database.ResourceTexts.AsNoTracking().FirstOrDefaultAsync(t => t.ResourceId == resourceId);
     }
 
     /// <inheritdoc />

@@ -24,7 +24,10 @@ public class EmbeddingService
     private readonly SemaphoreSlim concurrencyLimiter;
 
     private const int MaxBatchTokenBudget = 50_000;
-    private const int MaxEmbeddingBatchSize = MaxBatchTokenBudget / IngestionService.MaxChunkTokens;
+
+    // Upper bound per text: a 2000 character resource chunk plus its context lines, estimated at ~3 characters per token
+    private const int MaxTokensPerText = 800;
+    private const int MaxEmbeddingBatchSize = MaxBatchTokenBudget / MaxTokensPerText;
 
     public EmbeddingClient EmbeddingClient { get; private set; }
 

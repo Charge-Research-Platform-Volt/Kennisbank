@@ -192,6 +192,8 @@ public class ChunkSearchDocument
     public required string ChunkType { get; set; }
     public required int ChunkPart { get; set; }
     public required string ChunkText { get; set; }
+    public int? StartChar { get; set; }
+    public int? EndChar { get; set; }
 
     [JsonPropertyName("_vectors")]
     public Dictionary<string, float[]> Vectors { get; set; } = [];
