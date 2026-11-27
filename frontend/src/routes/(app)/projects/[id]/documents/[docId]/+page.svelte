@@ -408,9 +408,9 @@
 											<span class="font-medium">v{version.versionNumber}</span>
 
 											{#if version.id === detail.latestVersion.id}
-												<span class="rounded-full bg-primary/10 px-1.5 text-xs text-primary"
-													>Current</span
-												>
+												<span class="rounded-full bg-primary/10 px-1.5 text-xs text-primary">
+													Current
+												</span>
 											{/if}
 
 											{#if isProcessing(version)}<Spinner class="h-3 w-3" />{/if}

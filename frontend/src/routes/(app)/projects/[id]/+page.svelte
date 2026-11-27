@@ -468,9 +468,9 @@
 				{:else}
 					<div class="flex flex-wrap gap-1">
 						{#each visibleTags as tag (tag?.id)}
-							<span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary"
-								>{tag?.name}</span
-							>
+							<span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+								{tag?.name}
+							</span>
 						{/each}
 
 						{#if hiddenTagCount > 0}
@@ -483,9 +483,9 @@
 								<Popover.Content class="flex w-64 flex-wrap gap-1">
 									<Label class="w-full pb-3">Tags:</Label>
 									{#each projectInfo.tags.filter(Boolean) as tag (tag?.id)}
-										<span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary"
-											>{tag?.name}</span
-										>
+										<span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+											{tag?.name}
+										</span>
 									{/each}
 								</Popover.Content>
 							</Popover.Root>
@@ -668,8 +668,10 @@
 									onclick={() => {
 										renamingFolderId = entry.id;
 										renameFolderName = entry.title;
-									}}>Rename</ContextMenu.Item
+									}}
 								>
+									Rename
+								</ContextMenu.Item>
 								<ContextMenu.Separator />
 								<ContextMenu.Item
 									class="text-destructive focus:text-destructive"
@@ -680,8 +682,10 @@
 											)
 										)
 											await deleteFolder(entry.id);
-									}}>Delete</ContextMenu.Item
+									}}
 								>
+									Delete
+								</ContextMenu.Item>
 							</ContextMenu.Content>
 						</ContextMenu.Root>
 					{/each}
@@ -758,12 +762,12 @@
 							</ContextMenu.Trigger>
 
 							<ContextMenu.Content>
-								<ContextMenu.Item class="cursor-pointer" onclick={() => openDocument(doc)}
-									>Open</ContextMenu.Item
-								>
-								<ContextMenu.Item class="cursor-pointer" onclick={() => downloadDocument(doc)}
-									>Download</ContextMenu.Item
-								>
+								<ContextMenu.Item class="cursor-pointer" onclick={() => openDocument(doc)}>
+									Open
+								</ContextMenu.Item>
+								<ContextMenu.Item class="cursor-pointer" onclick={() => downloadDocument(doc)}>
+									Download
+								</ContextMenu.Item>
 
 								{#if doc.accessLevel === 'Editor'}
 									<ContextMenu.Separator />
@@ -994,12 +998,13 @@
 				</Button>
 
 				<div class="flex gap-2">
-					<Button class="cursor-pointer" variant="outline" onclick={() => (editOpen = false)}
-						>Cancel</Button
-					>
+					<Button class="cursor-pointer" variant="outline" onclick={() => (editOpen = false)}>
+						Cancel
+					</Button>
 
-					<Button class="cursor-pointer" onclick={submitEdit} disabled={editSubmitting}>Save</Button
-					>
+					<Button class="cursor-pointer" onclick={submitEdit} disabled={editSubmitting}>
+						Save
+					</Button>
 				</div>
 			</div>
 		</Dialog.Footer>

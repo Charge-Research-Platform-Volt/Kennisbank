@@ -49,9 +49,9 @@
 	<Popover.Trigger
 		class="flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-3 text-sm transition-colors hover:bg-accent {className}"
 	>
-		<span class="min-w-0 flex-1 truncate text-left"
-			>{placeholder}{value.length > 0 ? ` · ${value.length}` : ''}</span
-		>
+		<span class="min-w-0 flex-1 truncate text-left">
+			{placeholder}{value.length > 0 ? ` · ${value.length}` : ''}
+		</span>
 		<ChevronDown size={12} class="shrink-0 text-muted-foreground" />
 	</Popover.Trigger>
 	<Popover.Portal>

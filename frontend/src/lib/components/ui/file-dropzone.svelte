@@ -68,8 +68,10 @@
 				e.stopPropagation();
 				file = null;
 			}}
-			class="text-xs text-muted-foreground underline hover:text-foreground">Remove</button
+			class="text-xs text-muted-foreground underline hover:text-foreground"
 		>
+			Remove
+		</button>
 	{:else}
 		<Upload class="h-8 w-8 text-muted-foreground" />
 		<p class="text-sm font-medium">Drop a file or click to browse</p>

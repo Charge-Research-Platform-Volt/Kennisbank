@@ -138,16 +138,18 @@
 						An organisation with this name already exists.
 						<a
 							href="/library?inspectorId={duplicate.id}&inspectorType=organisation"
-							class="underline">View</a
+							class="underline"
 						>
+							View
+						</a>
 					</p>
 				{:else if similar.length > 0}
 					<p class="text-xs text-muted-foreground">
 						Similar names in the library:
 						{#each similar as s, i (s.id)}
-							<a href="/library?inspectorId={s.id}&inspectorType=organisation" class="underline"
-								>{s.name}</a
-							>{#if i < similar.length - 1},&nbsp;{/if}
+							<a href="/library?inspectorId={s.id}&inspectorType=organisation" class="underline">
+								{s.name}
+							</a>{#if i < similar.length - 1},&nbsp;{/if}
 						{/each}
 					</p>
 				{/if}
@@ -199,9 +201,9 @@
 
 		<!-- Actions -->
 		<div class="flex justify-end gap-3">
-			<Button variant="outline" type="button" onclick={() => history.back()} class="cursor-pointer"
-				>Cancel</Button
-			>
+			<Button variant="outline" type="button" onclick={() => history.back()} class="cursor-pointer">
+				Cancel
+			</Button>
 			<Button type="submit" disabled={!canSubmit} class="cursor-pointer">
 				{isSubmitting ? 'Creating...' : 'Create Organisation'}
 			</Button>

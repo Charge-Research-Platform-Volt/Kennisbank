@@ -89,9 +89,9 @@
 								{item.name}
 							</div>
 						</Table.Cell>
-						<Table.Cell class="px-5 py-3 text-center whitespace-nowrap"
-							>{formatDate(item.trashDate)}</Table.Cell
-						>
+						<Table.Cell class="px-5 py-3 text-center whitespace-nowrap">
+							{formatDate(item.trashDate)}
+						</Table.Cell>
 						<Table.Cell class="p-3">
 							<div class="flex items-center justify-center">
 								<button

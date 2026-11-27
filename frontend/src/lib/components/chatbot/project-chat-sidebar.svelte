@@ -140,8 +140,10 @@
 					<span>
 						Only searches this project's items. For library-wide search, use the <a
 							href="/chatbot"
-							class="text-foreground underline underline-offset-2 hover:opacity-70">ChatBot</a
-						>.
+							class="text-foreground underline underline-offset-2 hover:opacity-70"
+						>
+							ChatBot
+						</a>.
 					</span>
 				</div>
 			</div>

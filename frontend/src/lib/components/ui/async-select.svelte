@@ -85,8 +85,10 @@
 				? ''
 				: variant === 'flat'
 					? 'text-muted-foreground/50'
-					: 'text-muted-foreground'}">{displayValue ?? placeholder}</span
+					: 'text-muted-foreground'}"
 		>
+			{displayValue ?? placeholder}
+		</span>
 		{#if displayValue && allowClear}
 			<button
 				onclick={clear}

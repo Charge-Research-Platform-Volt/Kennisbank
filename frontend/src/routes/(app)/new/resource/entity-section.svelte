@@ -88,8 +88,10 @@
 				{#if entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
 					<span
 						class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400"
-						title="Not present in the database">New</span
+						title="Not present in the database"
 					>
+						New
+					</span>
 				{/if}
 			</div>
 			{#if variant === 'organisations'}
@@ -141,6 +143,7 @@
 	<button
 		onclick={onadd}
 		class="w-full cursor-pointer rounded border border-dashed border-border py-1.5 text-xs text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
-		>+ Add</button
 	>
+		+ Add
+	</button>
 </div>

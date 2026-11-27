@@ -29,14 +29,16 @@
 		{/if}
 
 		<AlertDialog.Footer>
-			<AlertDialog.Cancel class="cursor-pointer" onclick={confirmState.cancel}
-				>Cancel</AlertDialog.Cancel
-			>
+			<AlertDialog.Cancel class="cursor-pointer" onclick={confirmState.cancel}>
+				Cancel
+			</AlertDialog.Cancel>
 			<AlertDialog.Action
 				class="cursor-pointer"
 				onclick={confirmState.accept}
-				disabled={!confirmState.canAccept}>Confirm</AlertDialog.Action
+				disabled={!confirmState.canAccept}
 			>
+				Confirm
+			</AlertDialog.Action>
 		</AlertDialog.Footer>
 	</AlertDialog.Content>
 </AlertDialog.Root>

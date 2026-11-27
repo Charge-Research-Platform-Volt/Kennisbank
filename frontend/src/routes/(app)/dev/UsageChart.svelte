@@ -34,9 +34,9 @@
 </script>
 
 <div class="flex flex-col gap-1 rounded-md border p-4">
-	<span class="flex items-center gap-1.5 text-sm text-muted-foreground"
-		>{label}<InfoTip text={info} /></span
-	>
+	<span class="flex items-center gap-1.5 text-sm text-muted-foreground">
+		{label}<InfoTip text={info} />
+	</span>
 	<span class="text-2xl font-semibold">{total.toLocaleString()}</span>
 	<span class="min-h-4 text-xs text-muted-foreground">{detail ?? ''}</span>
 

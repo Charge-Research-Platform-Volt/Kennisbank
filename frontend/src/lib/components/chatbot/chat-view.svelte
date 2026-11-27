@@ -527,9 +527,9 @@
 
 						{#if msg.reasoning}
 							<details class="chat-thinking-block" open={msg.content === ''}>
-								<summary class="chat-thinking-summary"
-									>{msg.content === '' ? 'Thinking...' : 'View reasoning'}</summary
-								>
+								<summary class="chat-thinking-summary">
+									{msg.content === '' ? 'Thinking...' : 'View reasoning'}
+								</summary>
 								<div class="chat-thinking-content">{msg.reasoning}</div>
 							</details>
 						{/if}

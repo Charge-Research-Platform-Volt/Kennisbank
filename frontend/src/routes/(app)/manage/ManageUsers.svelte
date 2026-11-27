@@ -214,9 +214,9 @@
 					/>
 				</div>
 
-				<Button class="cursor-pointer" onclick={() => (inviteOpen = true)}
-					><Plus size={14} class="shrink-0" /> Invite User</Button
-				>
+				<Button class="cursor-pointer" onclick={() => (inviteOpen = true)}>
+					<Plus size={14} class="shrink-0" /> Invite User
+				</Button>
 			</div>
 			<span class="pl-3 text-sm text-muted-foreground">{totalCount} entries</span>
 		</div>
@@ -510,9 +510,9 @@
 		>
 			<Dialog.Header>
 				<Dialog.Title>Invite User</Dialog.Title>
-				<Dialog.Description
-					>An invitation email will be sent to the address below.</Dialog.Description
-				>
+				<Dialog.Description>
+					An invitation email will be sent to the address below.
+				</Dialog.Description>
 			</Dialog.Header>
 
 			<div class="flex flex-col gap-1.5">
@@ -538,9 +538,9 @@
 			</div>
 
 			<Dialog.Footer>
-				<Button class="cursor-pointer" variant="ghost" onclick={() => (inviteOpen = false)}
-					>Cancel</Button
-				>
+				<Button class="cursor-pointer" variant="ghost" onclick={() => (inviteOpen = false)}>
+					Cancel
+				</Button>
 				<Button class="cursor-pointer" onclick={inviteUser} disabled={submitting}>
 					{#if submitting}<Spinner class="h-4 w-4" />{/if} Send Invite
 				</Button>

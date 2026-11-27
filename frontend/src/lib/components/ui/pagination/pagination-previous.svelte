@@ -25,5 +25,5 @@
 	{...restProps}
 >
 	<ChevronLeftIcon />
-	<span class="hidden sm:block">Previous</span></PaginationPrimitive.PrevButton
->
+	<span class="hidden sm:block">Previous</span>
+</PaginationPrimitive.PrevButton>
