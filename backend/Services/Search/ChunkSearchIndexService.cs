@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Meilisearch;
 using Meilisearch.QueryParameters;
+using KnowledgeBank.Models;
 
 namespace KnowledgeBank.Services.Search;
 
@@ -176,7 +177,9 @@ public class ChunkSearchIndexService(MeilisearchClient client)
             {
                 ParentId = Guid.Parse(g.Key.ParentId),
                 ParentType = g.Key.ParentType,
-                MatchedChunks = g.OrderByDescending(c => c.RankingScore).Take(chunksPerParent).Select(c => crop ? (c.Formatted?.ChunkText ?? c.ChunkText) : c.ChunkText).ToList(),
+                MatchedChunks = g.OrderByDescending(c => c.RankingScore).Take(chunksPerParent)
+                    .Select(c => new MatchedChunk(crop ? (c.Formatted?.ChunkText ?? c.ChunkText) : c.ChunkText, c.StartChar, c.EndChar))
+                    .ToList(),
                 Score = scoreByParent[g.Key.ParentId]
             })
             .OrderBy(r => order[r.ParentId.ToString()])
@@ -214,7 +217,7 @@ public class ChunkSearchResult
 {
     public required Guid ParentId { get; set; }
     public required string ParentType { get; set; }
-    public required List<string> MatchedChunks { get; set; }
+    public required List<MatchedChunk> MatchedChunks { get; set; }
     public required float Score { get; set; }
 }
 

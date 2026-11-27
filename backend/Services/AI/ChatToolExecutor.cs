@@ -96,28 +96,30 @@ public class ChatToolExecutor(EmbeddingService embeddingService, AttachmentChunk
     /// (every hit's best passage first, then every hit's second, ...) until the token budget is spent, so the budget
     /// buys breadth before depth. Hits that got no room are listed by id so the model can read them with search_item_content.
     /// </summary>
-    internal static string FormatSearchResults(List<LibraryItemWithChunks> results, int tokenBudget = SearchResultTokenBudget)
+    internal static string FormatSearchResults(List<LibraryItemWithChunks> results, IReadOnlyDictionary<Guid, ResourceText>? texts = null, int tokenBudget = SearchResultTokenBudget)
     {
         List<LibraryItemWithChunks> relevant = [.. results.Where(i => i.Score >= RelevanceThreshold)];
         if (relevant.Count == 0)
             return "No relevant results found";
 
+        List<string>[] passages = [.. relevant.Select(i => SourcePassages.Build(i.MatchedChunks, texts?.GetValueOrDefault(i.Item.Id)))];
         List<string>[] included = [.. relevant.Select(_ => new List<string>())];
+
         int used = 0;
-        int rounds = relevant.Max(i => i.MatchedChunks.Count);
+        int rounds = passages.Max(p => p.Count);
         bool full = false;
 
         for (int round = 0; round < rounds && !full; round++)
         {
             for (int i = 0; i < relevant.Count; i++)
             {
-                if (round >= relevant[i].MatchedChunks.Count) continue;
+                if (round >= passages[i].Count) continue;
 
-                string chunk = relevant[i].MatchedChunks[round];
-                int cost = EstimateTokens(chunk);
+                string passage = passages[i][round];
+                int cost = EstimateTokens(passage);
                 if (used + cost > tokenBudget) { full = true; break; }
 
-                included[i].Add(chunk);
+                included[i].Add(passage);
                 used += cost;
             }
         }
@@ -129,7 +131,7 @@ public class ChatToolExecutor(EmbeddingService embeddingService, AttachmentChunk
         {
             LibraryItemWithChunks item = relevant[i];
 
-            if (included[i].Count == 0 && item.MatchedChunks.Count > 0)
+            if (included[i].Count == 0 && passages[i].Count > 0)
             {
                 notShown.Add(item);
                 continue;
@@ -181,7 +183,10 @@ public class ChatToolExecutor(EmbeddingService embeddingService, AttachmentChunk
         await hubContext.Clients.Client(connectionId).ChatToolStatus("search_library", $"Searching: {query}");
 
         List<LibraryItemWithChunks> results = await libraryService.SearchContentAsync(query, limit, idsFilter, typeFilter, crop: false);
-        string formatted = FormatSearchResults(results);
+        Dictionary<Guid, ResourceText> texts = await libraryService.GetResourceTextsAsync(results
+            .Where(r => r.Score >= RelevanceThreshold && r.MatchedChunks.Any(c => c.StartChar != null))
+            .Select(r => r.Item.Id));
+        string formatted = FormatSearchResults(results, texts);
         logger.Verbose("Search tool result: {Result}", formatted);
         return formatted;
     }
@@ -361,10 +366,14 @@ public class ChatToolExecutor(EmbeddingService embeddingService, AttachmentChunk
         if (match == null || match.MatchedChunks.Count == 0)
             return "No relevant content found within this item.";
 
+        ResourceText? text = match.MatchedChunks.Any(c => c.StartChar != null)
+            ? (await libraryService.GetResourceTextsAsync([itemId])).GetValueOrDefault(itemId)
+            : null;
+
         var sb = new StringBuilder();
         sb.AppendLine($"Cite as: [SRC:{match.Item.Id}]");
         sb.AppendLine();
-        sb.AppendLine(string.Join("\n---\n", match.MatchedChunks));
+        sb.AppendLine(string.Join("\n---\n", SourcePassages.Build(match.MatchedChunks, text)));
         return sb.ToString();
     }
 

@@ -129,6 +129,15 @@ public class LibraryService(DatabaseContext db, LibrarySearchIndexService librar
             );
     }
 
+    /// <summary>The stored full texts of these resources, by resource id. Resources without one are left out.</summary>
+    public async Task<Dictionary<Guid, ResourceText>> GetResourceTextsAsync(IEnumerable<Guid> resourceIds)
+    {
+        Guid[] ids = [.. resourceIds.Distinct()];
+        if (ids.Length == 0) return [];
+
+        return await db.ResourceTexts.AsNoTracking().Where(t => ids.Contains(t.ResourceId)).ToDictionaryAsync(t => t.ResourceId);
+    }
+
     public async Task<bool> ItemExistsAsync(Guid id)
         => await db.LibraryItems.AnyAsync(i => i.Id == id);
 

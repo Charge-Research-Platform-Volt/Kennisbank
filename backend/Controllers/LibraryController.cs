@@ -45,7 +45,7 @@ public class LibraryController(LibraryService libraryService, UsageMetrics usage
             r.Item.CreatedOn,
             r.Item.PublicationDate,
             r.Item.PublicationDatePrecision,
-            Chunks = r.MatchedChunks
+            Chunks = r.MatchedChunks.Select(c => c.Text).ToList()
         });
 
         return Ok(new { items, hasMore = results.Count == request.PageSize });

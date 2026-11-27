@@ -11,7 +11,7 @@ public class SearchResultFormattingTests
     private static LibraryItemWithChunks Hit(string name, float score, params string[] chunks) => new()
     {
         Item = new LibraryItem { Id = Guid.NewGuid(), Name = name, Type = "resource", Description = $"{name} description" },
-        MatchedChunks = [.. chunks],
+        MatchedChunks = [.. chunks.Select(c => new MatchedChunk(c))],
         Score = score
     };
 
@@ -94,5 +94,31 @@ public class SearchResultFormattingTests
 
         Assert.Contains("Description: Person X description", result);
         Assert.DoesNotContain("Passages:", result);
+    }
+
+    [Fact]
+    public void PositionedChunks_ShowTheirSliceOfTheStoredText()
+    {
+        string body = "Opening paragraph.\n\nThe matched paragraph.\n\nClosing paragraph.";
+        int start = body.IndexOf("The matched", StringComparison.Ordinal);
+        LibraryItemWithChunks hit = Hit("A", 0.8f);
+        hit.MatchedChunks = [new MatchedChunk("Document: A\n\nThe matched paragraph.", start, start + "The matched paragraph.".Length)];
+        ResourceText text = new() { ResourceId = hit.Item.Id, Text = body, PageStarts = [0], ExtractedAt = DateTime.UtcNow };
+
+        string result = ChatToolExecutor.FormatSearchResults([hit], new Dictionary<Guid, ResourceText> { [hit.Item.Id] = text });
+
+        Assert.Contains($"Passages:\n(p. 1)\n{body}", result);
+        Assert.DoesNotContain("Document: A", result);
+    }
+
+    [Fact]
+    public void HitsWithoutStoredText_ShowTheirChunks()
+    {
+        LibraryItemWithChunks hit = Hit("A", 0.8f);
+        hit.MatchedChunks = [new MatchedChunk("chunk with a position", 0, 21)];
+
+        string result = ChatToolExecutor.FormatSearchResults([hit], new Dictionary<Guid, ResourceText>());
+
+        Assert.Contains("Passages:\nchunk with a position", result);
     }
 }

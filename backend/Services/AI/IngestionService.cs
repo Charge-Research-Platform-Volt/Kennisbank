@@ -78,9 +78,15 @@ public class IngestionService(
         if (fileStream == null && !isWebsite) return null;
 
         ResourceText? stored = await vectorStore.GetResourceTextAsync(resource.Id);
-        if (fileStream == null && stored != null) return stored;
 
-        string? text = null;
+        // Only websites get here (a file has a stream), and older stored texts weren't cleaned yet
+        if (fileStream == null && stored != null)
+        {
+            stored.Text = TextExtractionService.CleanWebMarkdown(stored.Text);
+            return stored;
+        }
+
+        string? text;
         int[]? pageStarts = null;
 
         if (fileStream != null)
@@ -93,7 +99,7 @@ public class IngestionService(
         else
         {
             WebscrapeResult result = await textExtractionService.ExtractTextFromWebAsync(resource.SourceUrl!);
-            text = result.TextContent;
+            text = TextExtractionService.CleanWebMarkdown(result.TextContent ?? "");
         }
 
         if (!string.IsNullOrWhiteSpace(text))
@@ -126,7 +132,7 @@ public class IngestionService(
     /// </summary>
     internal static List<ResourceChunkInput> BuildContentChunks(string title, string text, int firstPart)
     {
-        List<(int Position, string Heading)> headings = [.. MarkdownHeading.Matches(text).Select(m => (m.Index, m.Groups[1].Value.Trim()))];
+        List<(int Position, string Heading)> headings = FindHeadings(text);
         string? documentLine = string.IsNullOrWhiteSpace(title) ? null : $"Document: {Truncate(title.Trim(), MaxContextLineChars)}";
 
         List<ResourceChunkInput> chunks = [];
@@ -145,7 +151,7 @@ public class IngestionService(
             while (headingIndex + 1 < headings.Count && headings[headingIndex + 1].Position <= anchor)
                 headingIndex++;
 
-            string? sectionLine = headingIndex >= 0 ? $"Section: {Truncate(headings[headingIndex].Heading, MaxContextLineChars)}" : null;
+            string? sectionLine = headingIndex >= 0 ? $"Section: {headings[headingIndex].Heading}" : null;
             string context = string.Join("\n", new[] { documentLine, sectionLine }.Where(l => l != null));
             string chunkText = text[span.Start..span.End];
 
@@ -162,6 +168,10 @@ public class IngestionService(
     }
 
     private static string Truncate(string value, int maxChars) => value.Length <= maxChars ? value : value[..maxChars].TrimEnd() + "...";
+
+    /// <summary>The markdown headings in the text with where each starts, truncated to fit a context line</summary>
+    internal static List<(int Position, string Heading)> FindHeadings(string text)
+        => [.. MarkdownHeading.Matches(text).Select(m => (m.Index, Truncate(m.Groups[1].Value.Trim(), MaxContextLineChars)))];
 
     /// <summary>
     /// Runs the resource pipeline for an existing resource, fetching its file from storage when it has one.

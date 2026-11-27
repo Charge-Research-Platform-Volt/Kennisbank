@@ -41,9 +41,12 @@ public class LibraryResult
     public Dictionary<string, int> TypeCounts { get; set; } = [];
 }
 
+/// <summary>A matched chunk and, for a resource's content chunk, where it sits in the stored full text</summary>
+public record MatchedChunk(string Text, int? StartChar = null, int? EndChar = null);
+
 public class LibraryItemWithChunks
 {
     public required LibraryItem Item { get; set; }
-    public required List<string> MatchedChunks { get; set; }
+    public required List<MatchedChunk> MatchedChunks { get; set; }
     public required float Score { get; set; }
 }

@@ -353,10 +353,24 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         text = Regex.Replace(text, @"!\[[^\]]*\]\([^\)]*\)", "");
         text = Regex.Replace(text, @"\^\{\}\[\]", "");
         text = Regex.Replace(text, @"(?m)^#+\s*$", "");
+        text = Regex.Replace(text, @"\n{3,}", "\n\n");
 
         text = System.Net.WebUtility.HtmlDecode(text);
 
         return text;
+    }
+
+    /// <summary>
+    /// Scraped pages come as markdown. Images go, and links keep their text without the URL (one level of parentheses
+    /// inside a URL is allowed, as in Wikipedia links). The blank lines left behind collapse.
+    /// </summary>
+    internal static string CleanWebMarkdown(string text)
+    {
+        text = Regex.Replace(text, @"!\[[^\]]*\]\([^\)]*\)", "");
+        text = Regex.Replace(text, @"\[([^\]]*)\]\((?:[^()\s]|\([^()\s]*\))*(?:\s+""[^""]*"")?\)", "$1");
+        text = Regex.Replace(text, @"[ \t]+\n", "\n");
+        text = Regex.Replace(text, @"\n{3,}", "\n\n");
+        return text.Trim();
     }
 
     /// <summary>
