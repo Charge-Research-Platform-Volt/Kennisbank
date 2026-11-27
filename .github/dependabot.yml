@@ -11,14 +11,6 @@ updates:
     groups:
       nuget-minor-patch:
         update-types: [minor, patch]
-    ignore:
-      # Skipping .NET 11 (STS). ASP.NET Core packages only target their own .NET version, and
-      # Swashbuckle 11 needs Microsoft.OpenApi 3, which clashes with Microsoft.AspNetCore.OpenApi 10.
-      # Only 11 is ignored: the 12.x PRs arrive with .NET 12 (LTS), as the reminder to upgrade.
-      - dependency-name: "Microsoft.AspNetCore.*"
-        versions: ["11.*"]
-      - dependency-name: "Swashbuckle.AspNetCore.*"
-        versions: ["11.*"]
 
   - package-ecosystem: npm
     directory: /frontend
