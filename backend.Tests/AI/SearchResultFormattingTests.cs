@@ -57,15 +57,16 @@ public class SearchResultFormattingTests
     [Fact]
     public void Budget_GivesEveryHitItsBestPassageBeforeAnySecond()
     {
-        LibraryItemWithChunks a = Hit("A", 0.9f, Filler + "a1", Filler + "a2");
-        LibraryItemWithChunks b = Hit("B", 0.8f, Filler + "b1", Filler + "b2");
+        // Markers that can't occur in the GUIDs of the result
+        LibraryItemWithChunks a = Hit("A", 0.9f, Filler + "<A1>", Filler + "<A2>");
+        LibraryItemWithChunks b = Hit("B", 0.8f, Filler + "<B1>", Filler + "<B2>");
 
         string result = ChatToolExecutor.FormatSearchResults([a, b], tokenBudget: 250);
 
-        Assert.Contains("a1", result);
-        Assert.Contains("b1", result);
-        Assert.DoesNotContain("a2", result);
-        Assert.DoesNotContain("b2", result);
+        Assert.Contains("<A1>", result);
+        Assert.Contains("<B1>", result);
+        Assert.DoesNotContain("<A2>", result);
+        Assert.DoesNotContain("<B2>", result);
     }
 
     [Fact]

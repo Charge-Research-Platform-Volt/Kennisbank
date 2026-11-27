@@ -138,22 +138,18 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         usageMetrics.Record("ocr.document", duration: stopwatch.Elapsed);
         usageMetrics.Record("ocr.pages", count: ocrResult.Pages.Count);
 
-        StringBuilder sb = new();
         HashSet<string> headerFooterLines = new(StringComparer.OrdinalIgnoreCase);
 
         foreach (MistralOcrPage page in ocrResult.Pages)
         {
-            if (!string.IsNullOrWhiteSpace(page.Markdown))
-                sb.AppendLine(page.Markdown);
-            
             if (!string.IsNullOrWhiteSpace(page.Header)) headerFooterLines.Add(page.Header.Trim());
             if (!string.IsNullOrWhiteSpace(page.Footer)) headerFooterLines.Add(page.Footer.Trim());
         }
 
-        string result = CleanOcrMarkdown(sb.ToString());
-        logger.LogInformation("Mistral OCR extracted {Length} characters.", result.Length);
+        OcrResult result = BuildOcrResult([.. ocrResult.Pages.Select(p => p.Markdown ?? "")], string.Join("\n", headerFooterLines), ocrResult.Model);
+        logger.LogInformation("Mistral OCR extracted {Length} characters from {Pages} pages.", result.Text.Length, ocrResult.Pages.Count);
 
-        return new OcrResult { Text = result, HeaderFooterText = string.Join("\n", headerFooterLines), Model = ocrResult.Model };
+        return result;
     }
 
     private async Task<OcrResult?> TryReadOcrCacheAsync(string bucketName, string fileId, string currentModelId)
@@ -173,8 +169,14 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
                 return null;
             }
 
+            if (cached.Pages == null)
+            {
+                logger.LogInformation("OCR cache for {FileId} predates per-page storage, re-running OCR", fileId);
+                return null;
+            }
+
             logger.LogInformation("OCR cache hit for {FileId} (model: {Model})", fileId, cached.Model);
-            return cached;
+            return BuildOcrResult(cached.Pages, cached.HeaderFooterText, cached.Model);
         }
         catch
         {
@@ -356,6 +358,27 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
 
         return text;
     }
+
+    /// <summary>
+    /// Builds the text from raw OCR pages: each page cleaned and followed by a line break, recording where each page
+    /// starts. A page without text still gets a start, so page numbers stay aligned with the document.
+    /// </summary>
+    internal static OcrResult BuildOcrResult(List<string> pages, string headerFooterText, string model)
+    {
+        StringBuilder sb = new();
+        int[] pageStarts = new int[pages.Count];
+
+        for (int i = 0; i < pages.Count; i++)
+        {
+            pageStarts[i] = sb.Length;
+
+            string cleaned = CleanOcrMarkdown(pages[i]);
+            if (!string.IsNullOrWhiteSpace(cleaned))
+                sb.Append(cleaned).Append('\n');
+        }
+
+        return new OcrResult { Text = sb.ToString(), HeaderFooterText = headerFooterText, Model = model, Pages = pages, PageStarts = pageStarts };
+    }
     
     #endregion
     
@@ -445,4 +468,13 @@ public class OcrResult
     public string Text { get; set; } = "";
     public string HeaderFooterText { get; set; } = "";
     public string Model { get; set; } = "";
+
+    /// <summary>
+    /// Markdown per page exactly as OCR returned it, so a later change to the cleaning never needs a new OCR run.
+    /// Null for text that didn't come from OCR, and in caches written before pages were kept.
+    /// </summary>
+    public List<string>? Pages { get; set; }
+
+    /// <summary>Where each page starts in Text: page n starts at PageStarts[n - 1]. Null when Pages is</summary>
+    public int[]? PageStarts { get; set; }
 }

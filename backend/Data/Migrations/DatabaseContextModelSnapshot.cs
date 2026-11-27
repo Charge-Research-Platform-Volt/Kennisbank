@@ -19,7 +19,7 @@ namespace KnowledgeBank.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.14")
+                .HasAnnotation("ProductVersion", "10.0.15")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -1278,6 +1278,30 @@ namespace KnowledgeBank.Data.Migrations
                     b.ToTable("resource-tag");
                 });
 
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceText", b =>
+                {
+                    b.Property<Guid>("ResourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resource-id");
+
+                    b.Property<DateTime>("ExtractedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("extracted-at");
+
+                    b.PrimitiveCollection<int[]>("PageStarts")
+                        .HasColumnType("integer[]")
+                        .HasColumnName("page-starts");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text");
+
+                    b.HasKey("ResourceId");
+
+                    b.ToTable("resource-texts");
+                });
+
             modelBuilder.Entity("KnowledgeBank.Models.ResourceType", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1986,6 +2010,17 @@ namespace KnowledgeBank.Data.Migrations
                     b.Navigation("Resource");
 
                     b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceText", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Resource", "Resource")
+                        .WithOne()
+                        .HasForeignKey("KnowledgeBank.Models.ResourceText", "ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Resource");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

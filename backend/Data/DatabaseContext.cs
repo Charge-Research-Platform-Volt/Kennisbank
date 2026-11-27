@@ -11,6 +11,7 @@ namespace KnowledgeBank.Data
 
         public DbSet<Resource> Resources { get; set; }
         public DbSet<ResourceChunk> ResourceChunks { get; set; }
+        public DbSet<ResourceText> ResourceTexts { get; set; }
         public DbSet<EntityChunk> EntityChunks { get; set; }
         public DbSet<Project> Projects { get; set; }
         public DbSet<Tag> Tags { get; set; }
@@ -160,6 +161,16 @@ namespace KnowledgeBank.Data
                 // Composite index for common query pattern
                 entity.HasIndex(e => new { e.ResourceId, e.ChunkPart })
                     .HasDatabaseName("id_resource_chunks_resource_part");
+            });
+
+            // Resource texts
+            modelBuilder.Entity<ResourceText>(entity =>
+            {
+                // Database-level cascade, so deleting a resource also removes its text
+                entity.HasOne(t => t.Resource)
+                    .WithOne()
+                    .HasForeignKey<ResourceText>(t => t.ResourceId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Entity chunks
