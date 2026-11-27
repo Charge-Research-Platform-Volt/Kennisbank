@@ -25,5 +25,5 @@
 	{...restProps}
 >
 	<span class="hidden sm:block">Next</span>
-	<ChevronRightIcon /></PaginationPrimitive.NextButton
->
+	<ChevronRightIcon />
+</PaginationPrimitive.NextButton>

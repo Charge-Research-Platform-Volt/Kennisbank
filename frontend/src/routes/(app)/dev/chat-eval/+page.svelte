@@ -243,9 +243,9 @@
 				Cancel run
 			</Button>
 		{:else}
-			<Button onclick={startRun} disabled={submitting || !parsedCases.cases} class="cursor-pointer"
-				>Run eval</Button
-			>
+			<Button onclick={startRun} disabled={submitting || !parsedCases.cases} class="cursor-pointer">
+				Run eval
+			</Button>
 		{/if}
 	</div>
 

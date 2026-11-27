@@ -550,8 +550,10 @@
 					{#if resourceInfo.title}
 						<span
 							transition:fly={{ y: 4, duration: 150 }}
-							class="pb-1 text-xs text-muted-foreground">Title</span
+							class="pb-1 text-xs text-muted-foreground"
 						>
+							Title
+						</span>
 					{/if}
 					<input
 						bind:value={resourceInfo.title}
@@ -597,8 +599,10 @@
 						{#if resourceInfo.abstract}
 							<span
 								transition:fly={{ y: 4, duration: 150 }}
-								class="pb-1 text-xs text-muted-foreground">Abstract</span
+								class="pb-1 text-xs text-muted-foreground"
 							>
+								Abstract
+							</span>
 						{/if}
 						<textarea
 							bind:value={resourceInfo.abstract}
@@ -617,8 +621,10 @@
 					{#if resourceInfo.description}
 						<span
 							transition:fly={{ y: 4, duration: 150 }}
-							class="pb-1 text-xs text-muted-foreground">Description</span
+							class="pb-1 text-xs text-muted-foreground"
 						>
+							Description
+						</span>
 					{/if}
 					<textarea
 						bind:value={resourceInfo.description}
@@ -696,8 +702,10 @@
 						{#if resourceInfo.publicationCode}
 							<span
 								transition:fly={{ y: 4, duration: 150 }}
-								class="pb-1 text-xs text-muted-foreground">Publication Code</span
+								class="pb-1 text-xs text-muted-foreground"
 							>
+								Publication Code
+							</span>
 						{/if}
 						<input
 							bind:value={resourceInfo.publicationCode}
@@ -715,8 +723,10 @@
 						{#if resourceInfo.license}
 							<span
 								transition:fly={{ y: 4, duration: 150 }}
-								class="pb-1 text-xs text-muted-foreground">License</span
+								class="pb-1 text-xs text-muted-foreground"
 							>
+								License
+							</span>
 						{/if}
 						<input
 							bind:value={resourceInfo.license}
@@ -746,8 +756,10 @@
 					{#if resourceInfo.sourceUrl}
 						<span
 							transition:fly={{ y: 4, duration: 150 }}
-							class="pb-1 text-xs text-muted-foreground">Source URL</span
+							class="pb-1 text-xs text-muted-foreground"
 						>
+							Source URL
+						</span>
 					{/if}
 					<input
 						type="url"
@@ -764,8 +776,10 @@
 					{#if resourceInfo.note}
 						<span
 							transition:fly={{ y: 4, duration: 150 }}
-							class="pb-1 text-xs text-muted-foreground">Note</span
+							class="pb-1 text-xs text-muted-foreground"
 						>
+							Note
+						</span>
 					{/if}
 					<textarea
 						bind:value={resourceInfo.note}
@@ -865,12 +879,12 @@
 							if (v) entityModal.entityType = v;
 						}}
 					>
-						<ToggleGroup.Item value="person" class="flex-1 cursor-pointer text-xs"
-							>Person</ToggleGroup.Item
-						>
-						<ToggleGroup.Item value="organisation" class="flex-1 cursor-pointer text-xs"
-							>Organisation</ToggleGroup.Item
-						>
+						<ToggleGroup.Item value="person" class="flex-1 cursor-pointer text-xs">
+							Person
+						</ToggleGroup.Item>
+						<ToggleGroup.Item value="organisation" class="flex-1 cursor-pointer text-xs">
+							Organisation
+						</ToggleGroup.Item>
 					</ToggleGroup.Root>
 				</div>
 			{/if}
@@ -916,12 +930,12 @@
 						variant="outline"
 						bind:value={entityModal.role}
 					>
-						<ToggleGroup.Item value="subject" class="flex-1 cursor-pointer text-xs"
-							>Subject</ToggleGroup.Item
-						>
-						<ToggleGroup.Item value="production" class="flex-1 cursor-pointer text-xs"
-							>Production</ToggleGroup.Item
-						>
+						<ToggleGroup.Item value="subject" class="flex-1 cursor-pointer text-xs">
+							Subject
+						</ToggleGroup.Item>
+						<ToggleGroup.Item value="production" class="flex-1 cursor-pointer text-xs">
+							Production
+						</ToggleGroup.Item>
 					</ToggleGroup.Root>
 				</div>
 			{/if}
@@ -950,12 +964,12 @@
 		</div>
 
 		<Dialog.Footer>
-			<Button class="cursor-pointer" variant="outline" onclick={() => (entityModal.open = false)}
-				>Cancel</Button
-			>
-			<Button class="cursor-pointer" onclick={confirmModal}
-				>{entityModal.mode === 'add' ? 'Add' : 'Save'}</Button
-			>
+			<Button class="cursor-pointer" variant="outline" onclick={() => (entityModal.open = false)}>
+				Cancel
+			</Button>
+			<Button class="cursor-pointer" onclick={confirmModal}>
+				{entityModal.mode === 'add' ? 'Add' : 'Save'}
+			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>

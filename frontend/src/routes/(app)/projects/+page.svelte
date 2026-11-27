@@ -155,9 +155,9 @@
 			{/if}
 		</div>
 
-		<Button class="flex cursor-pointer items-center" onclick={() => (dialogOpen = true)}
-			><Plus size={14} class="shrink-0" />Create Project</Button
-		>
+		<Button class="flex cursor-pointer items-center" onclick={() => (dialogOpen = true)}>
+			<Plus size={14} class="shrink-0" />Create Project
+		</Button>
 	</div>
 
 	<!-- List -->
@@ -185,8 +185,10 @@
 										<Pagination.Link
 											class="cursor-pointer"
 											{page}
-											isActive={currentPage === page.value}>{page.value}</Pagination.Link
+											isActive={currentPage === page.value}
 										>
+											{page.value}
+										</Pagination.Link>
 									</Pagination.Item>
 								{/if}
 							{/each}
@@ -220,9 +222,9 @@
 								<div class="flex flex-col">
 									<span>{item.title}</span>
 									{#if item.description}
-										<span class="max-w-sm truncate text-xs text-muted-foreground"
-											>{item.description}</span
-										>
+										<span class="max-w-sm truncate text-xs text-muted-foreground">
+											{item.description}
+										</span>
 									{/if}
 								</div>
 							</div>
@@ -242,9 +244,9 @@
 							</div>
 						</Table.Cell>
 
-						<Table.Cell class="px-5 py-3 text-center whitespace-nowrap"
-							>{formatDate(item.createdOn)}</Table.Cell
-						>
+						<Table.Cell class="px-5 py-3 text-center whitespace-nowrap">
+							{formatDate(item.createdOn)}
+						</Table.Cell>
 					</Table.Row>
 				{/each}
 			</Table.Body>
@@ -282,9 +284,9 @@
 		</div>
 
 		<Dialog.Footer>
-			<Button class="cursor-pointer" variant="outline" onclick={() => (dialogOpen = false)}
-				>Cancel</Button
-			>
+			<Button class="cursor-pointer" variant="outline" onclick={() => (dialogOpen = false)}>
+				Cancel
+			</Button>
 
 			<Button
 				class="cursor-pointer"

@@ -344,21 +344,17 @@
 						bind:value={typeFilter}
 						onValueChange={handleTypeFilterChange}
 					>
-						<ToggleGroup.Item value="resource" class="cursor-pointer text-xs"
-							>Resources{typeCounts.resource !== undefined
-								? ` (${typeCounts.resource})`
-								: ''}</ToggleGroup.Item
-						>
-						<ToggleGroup.Item value="person" class="cursor-pointer text-xs"
-							>Persons{typeCounts.person !== undefined
-								? ` (${typeCounts.person})`
-								: ''}</ToggleGroup.Item
-						>
-						<ToggleGroup.Item value="organisation" class="cursor-pointer text-xs"
-							>Organisations{typeCounts.organisation !== undefined
+						<ToggleGroup.Item value="resource" class="cursor-pointer text-xs">
+							Resources{typeCounts.resource !== undefined ? ` (${typeCounts.resource})` : ''}
+						</ToggleGroup.Item>
+						<ToggleGroup.Item value="person" class="cursor-pointer text-xs">
+							Persons{typeCounts.person !== undefined ? ` (${typeCounts.person})` : ''}
+						</ToggleGroup.Item>
+						<ToggleGroup.Item value="organisation" class="cursor-pointer text-xs">
+							Organisations{typeCounts.organisation !== undefined
 								? ` (${typeCounts.organisation})`
-								: ''}</ToggleGroup.Item
-						>
+								: ''}
+						</ToggleGroup.Item>
 					</ToggleGroup.Root>
 				</div>
 
@@ -579,9 +575,9 @@
 								{/if}
 							</div>
 						</Table.Cell>
-						<Table.Cell class="px-5 py-3 text-center whitespace-nowrap"
-							>{formatDate(item.publicationDate, item.publicationDatePrecision)}</Table.Cell
-						>
+						<Table.Cell class="px-5 py-3 text-center whitespace-nowrap">
+							{formatDate(item.publicationDate, item.publicationDatePrecision)}
+						</Table.Cell>
 						<Table.Cell class="p-3">
 							<div class="flex items-center justify-center">
 								{#if action === 'open'}

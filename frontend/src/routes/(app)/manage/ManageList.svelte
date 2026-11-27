@@ -387,16 +387,18 @@
 										<button
 											onclick={createItem}
 											class="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-											><Check size={14} /></button
 										>
+											<Check size={14} />
+										</button>
 										<button
 											onclick={() => {
 												creating = false;
 												creatingName = '';
 											}}
 											class="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-											><X size={14} /></button
 										>
+											<X size={14} />
+										</button>
 									</div>
 								</Table.Cell>
 							</Table.Row>
@@ -455,16 +457,18 @@
 													renameItem();
 												}}
 												class="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-												><Check size={14} /></button
 											>
+												<Check size={14} />
+											</button>
 											<button
 												onclick={(e) => {
 													e.stopPropagation();
 													editingId = null;
 												}}
 												class="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-												><X size={14} /></button
 											>
+												<X size={14} />
+											</button>
 										{:else}
 											<button
 												onclick={(e) => {
@@ -473,16 +477,18 @@
 													editingName = item.name;
 												}}
 												class="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-												><Pencil size={14} /></button
 											>
+												<Pencil size={14} />
+											</button>
 											<button
 												onclick={(e) => {
 													e.stopPropagation();
 													deleteItem(item);
 												}}
 												class="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
-												><Trash size={14} /></button
 											>
+												<Trash size={14} />
+											</button>
 										{/if}
 									</div>
 								</Table.Cell>
@@ -548,9 +554,9 @@
 		<div class="flex shrink-0 items-center justify-between border-b p-4">
 			<span class="text-sm font-medium">Merge Suggestions</span>
 			{#if suggestions.length > 0}
-				<span class="text-xs text-muted-foreground"
-					>{suggestions.length} pair{suggestions.length !== 1 ? 's' : ''}</span
-				>
+				<span class="text-xs text-muted-foreground">
+					{suggestions.length} pair{suggestions.length !== 1 ? 's' : ''}
+				</span>
 			{/if}
 		</div>
 
@@ -617,13 +623,13 @@
 <Dialog.Root bind:open={mergeDialogOpen}>
 	<Dialog.Content class="max-w-md">
 		<Dialog.Header>
-			<Dialog.Title
-				>Merge {mergeDialogItems.length}
-				{cfg.label}{mergeDialogItems.length !== 1 ? 's' : ''}</Dialog.Title
-			>
-			<Dialog.Description
-				>Choose which {cfg.label.toLowerCase()} to keep. All others will be absorbed into it.</Dialog.Description
-			>
+			<Dialog.Title>
+				Merge {mergeDialogItems.length}
+				{cfg.label}{mergeDialogItems.length !== 1 ? 's' : ''}
+			</Dialog.Title>
+			<Dialog.Description>
+				Choose which {cfg.label.toLowerCase()} to keep. All others will be absorbed into it.
+			</Dialog.Description>
 		</Dialog.Header>
 
 		<!-- Survivor picker -->
@@ -662,9 +668,9 @@
 
 		<!-- Optional rename -->
 		<div class="flext flex-col gap-1.5">
-			<span class="text-sm font-medium"
-				>Name <span class="font-normal text-muted-foreground">(optional rename)</span></span
-			>
+			<span class="text-sm font-medium">
+				Name <span class="font-normal text-muted-foreground">(optional rename)</span>
+			</span>
 			<Input
 				bind:value={mergeSurvivorName}
 				oninput={() => (mergeNameEditedManually = true)}
@@ -675,17 +681,17 @@
 		<!-- Confirm input for 5+ -->
 		{#if mergeDialogItems.length >= 5}
 			<div class="flex flex-col gap-1.5">
-				<span class="text-sm text-muted-foreground"
-					>Type <span class="font-mono font-medium text-foreground">MERGE</span> to confirm</span
-				>
+				<span class="text-sm text-muted-foreground">
+					Type <span class="font-mono font-medium text-foreground">MERGE</span> to confirm
+				</span>
 				<Input bind:value={mergeConfirmText} placeholder="MERGE" />
 			</div>
 		{/if}
 
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (mergeDialogOpen = false)} class="cursor-pointer"
-				>Cancel</Button
-			>
+			<Button variant="outline" onclick={() => (mergeDialogOpen = false)} class="cursor-pointer">
+				Cancel
+			</Button>
 			<Button
 				onclick={executeMerge}
 				disabled={submitting || (mergeDialogItems.length >= 5 && mergeConfirmText !== 'MERGE')}

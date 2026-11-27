@@ -86,8 +86,10 @@
 								href="https://status.mistral.ai"
 								target="_blank"
 								rel="noopener noreferrer"
-								class="underline">status.mistral.ai</a
+								class="underline"
 							>
+								status.mistral.ai
+							</a>
 							for the latest status.
 						</span>
 						<button
@@ -112,12 +114,12 @@
 <Dialog.Root bind:open={changelogDialogOpen}>
 	<Dialog.Content class="flex max-h-[80vh] max-w-3xl! flex-col p-5">
 		<Dialog.Header>
-			<Dialog.Title class="flex items-center gap-2"
-				><Sparkles size={14} class="text-amber-400" /> What's new</Dialog.Title
-			>
-			<Dialog.Description
-				>These are all the changes since the last time you logged in.</Dialog.Description
-			>
+			<Dialog.Title class="flex items-center gap-2">
+				<Sparkles size={14} class="text-amber-400" /> What's new
+			</Dialog.Title>
+			<Dialog.Description>
+				These are all the changes since the last time you logged in.
+			</Dialog.Description>
 		</Dialog.Header>
 
 		<div class="flex max-h-[60vh] flex-col overflow-y-auto p-2">
@@ -128,9 +130,9 @@
 				<div class="flex flex-col gap-1.5">
 					<div class="flex items-center justify-between">
 						<span class="font-medium">{entry.title}</span>
-						<span class="text-xs text-muted-foreground"
-							>{new Date(entry.createdAt).toLocaleDateString()}</span
-						>
+						<span class="text-xs text-muted-foreground">
+							{new Date(entry.createdAt).toLocaleDateString()}
+						</span>
 					</div>
 					<div class="prose prose-sm max-w-none text-sm text-muted-foreground">
 						<!-- eslint-disable-next-line svelte/no-at-html-tags -->

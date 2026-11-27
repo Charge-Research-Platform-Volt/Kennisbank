@@ -147,15 +147,15 @@
 		<h1 class="text-lg font-semibold">Dashboard</h1>
 
 		<div class="flex gap-4 text-sm">
-			<a href="/dev/new-changelog" class="text-muted-foreground underline hover:text-foreground"
-				>New changelog entry</a
-			>
-			<a href="/dev/reembed" class="text-muted-foreground underline hover:text-foreground"
-				>Embedding status</a
-			>
-			<a href="/dev/chat-eval" class="text-muted-foreground underline hover:text-foreground"
-				>Chat eval</a
-			>
+			<a href="/dev/new-changelog" class="text-muted-foreground underline hover:text-foreground">
+				New changelog entry
+			</a>
+			<a href="/dev/reembed" class="text-muted-foreground underline hover:text-foreground">
+				Embedding status
+			</a>
+			<a href="/dev/chat-eval" class="text-muted-foreground underline hover:text-foreground">
+				Chat eval
+			</a>
 		</div>
 	</div>
 
@@ -192,11 +192,11 @@
 						</span>
 
 						<div class="flex items-center justify-between text-sm">
-							<span class="flex items-center gap-1.5"
-								>Online<InfoTip
+							<span class="flex items-center gap-1.5">
+								Online<InfoTip
 									text="People with the app open in at least one tab, including idle tabs left open."
-								/></span
-							>
+								/>
+							</span>
 							<span class="font-mono">{live.connectedUsers}</span>
 						</div>
 
@@ -220,9 +220,9 @@
 						</span>
 
 						<div class="flex items-center justify-between text-sm">
-							<span class="flex items-center gap-1.5"
-								>Chat responses<InfoTip text="Chatbot answers being written right now." /></span
-							>
+							<span class="flex items-center gap-1.5">
+								Chat responses<InfoTip text="Chatbot answers being written right now." />
+							</span>
 							<span class="font-mono">{live.activeChatStreams}</span>
 						</div>
 
@@ -247,11 +247,9 @@
 						</div>
 
 						<div class="flex items-center justify-between text-sm">
-							<span class="flex items-center gap-1.5"
-								>Re-embed run<InfoTip
-									text="A re-embed started from the Embedding status page."
-								/></span
-							>
+							<span class="flex items-center gap-1.5">
+								Re-embed run<InfoTip text="A re-embed started from the Embedding status page." />
+							</span>
 							<span class="font-mono">{live.reembedRunning ? 'running' : 'idle'}</span>
 						</div>
 					</div>
@@ -280,67 +278,67 @@
 					</div>
 
 					<div class="flex items-center justify-between text-sm">
-						<span class="flex items-center gap-1.5"
-							>Process<InfoTip
+						<span class="flex items-center gap-1.5">
+							Process<InfoTip
 								text="What the server sees, the same as docker stats: the .NET heap plus everything outside it."
-							/></span
-						>
+							/>
+						</span>
 						<span class="font-mono">{mib(memory.processBytes)}</span>
 					</div>
 
 					<div class="flex items-center justify-between text-sm">
-						<span class="flex items-center gap-1.5"
-							>Still in use after a full collection<InfoTip
+						<span class="flex items-center gap-1.5">
+							Still in use after a full collection<InfoTip
 								text="What the app really holds on to. This is the number to watch over days: a leak makes it grow without stopping."
-							/></span
-						>
-						<span class="font-mono"
-							>{memory.liveAfterLastFullGcBytes === null
+							/>
+						</span>
+						<span class="font-mono">
+							{memory.liveAfterLastFullGcBytes === null
 								? 'no full collection yet'
-								: mib(memory.liveAfterLastFullGcBytes)}</span
-						>
+								: mib(memory.liveAfterLastFullGcBytes)}
+						</span>
 					</div>
 
 					<div class="flex items-center justify-between text-sm">
-						<span class="flex items-center gap-1.5"
-							>.NET heap (fragmented)<InfoTip
+						<span class="flex items-center gap-1.5">
+							.NET heap (fragmented)<InfoTip
 								text="The managed heap now, including garbage not collected yet. Fragmented is free space inside it that can't be handed back until the heap is compacted."
-							/></span
-						>
-						<span class="font-mono"
-							>{mib(memory.gcHeapBytes)} ({mib(memory.gcFragmentedBytes)})</span
-						>
+							/>
+						</span>
+						<span class="font-mono">
+							{mib(memory.gcHeapBytes)} ({mib(memory.gcFragmentedBytes)})
+						</span>
 					</div>
 
 					<div class="flex items-center justify-between text-sm">
-						<span class="flex items-center gap-1.5"
-							>Large object heap<InfoTip
+						<span class="flex items-center gap-1.5">
+							Large object heap<InfoTip
 								text="Objects over 85 KB, such as whole files read into memory while processing. Only cleaned up by full collections."
-							/></span
-						>
+							/>
+						</span>
 						<span class="font-mono">{mib(memory.largeObjectHeapBytes)}</span>
 					</div>
 
 					<div class="flex items-center justify-between text-sm">
-						<span class="flex items-center gap-1.5"
-							>Reserved by .NET<InfoTip
+						<span class="flex items-center gap-1.5">
+							Reserved by .NET<InfoTip
 								text="Memory .NET has taken from the OS for its heap, used or not."
-							/></span
-						>
+							/>
+						</span>
 						<span class="font-mono">{mib(memory.gcCommittedBytes)}</span>
 					</div>
 
 					<div class="flex items-center justify-between text-sm">
-						<span class="flex items-center gap-1.5"
-							>Full collections · GC budget<InfoTip
+						<span class="flex items-center gap-1.5">
+							Full collections · GC budget<InfoTip
 								text="How often a full collection has run since startup, and how much memory the garbage collector thinks it may use: the whole server unless the container has a memory limit. A big budget is why it cleans up so rarely."
-							/></span
-						>
-						<span class="font-mono"
-							>{memory.fullCollections} · {gib(memory.gcBudgetBytes)}{memory.serverGc
+							/>
+						</span>
+						<span class="font-mono">
+							{memory.fullCollections} · {gib(memory.gcBudgetBytes)}{memory.serverGc
 								? ' (server GC)'
-								: ''}</span
-						>
+								: ''}
+						</span>
 					</div>
 
 					{#if processBeforeCollect !== null}
@@ -419,8 +417,10 @@
 							Deprecated on {new Date(
 								family.deprecation
 							).toLocaleDateString()}{#if family.deprecationReplacement}, replacement: <span
-									class="font-mono">{family.deprecationReplacement}</span
-								>{/if}
+									class="font-mono"
+								>
+									{family.deprecationReplacement}
+								</span>{/if}
 						</div>
 					{/if}
 

@@ -43,9 +43,9 @@
 			<div class="flex flex-col gap-1.5">
 				<div class="flex items-center justify-between">
 					<span class="font-medium">{entry.title}</span>
-					<span class="text-xs text-muted-foreground"
-						>{new Date(entry.createdAt).toLocaleDateString()}</span
-					>
+					<span class="text-xs text-muted-foreground">
+						{new Date(entry.createdAt).toLocaleDateString()}
+					</span>
 				</div>
 				<div class="prose prose-sm max-w-none text-sm text-muted-foreground">
 					<!-- eslint-disable-next-line svelte/no-at-html-tags -->

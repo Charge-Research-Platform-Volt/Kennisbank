@@ -303,9 +303,9 @@
 )}
 	{@const max = Math.max(1, ...rows.map((r) => r.total))}
 	<div class="flex flex-col gap-2 rounded-md border p-4">
-		<span class="flex items-center gap-1.5 text-sm text-muted-foreground"
-			>{title}<InfoTip text={info} /></span
-		>
+		<span class="flex items-center gap-1.5 text-sm text-muted-foreground">
+			{title}<InfoTip text={info} />
+		</span>
 
 		{#if rows.every((r) => r.total === 0)}
 			<span class="text-sm text-muted-foreground">{emptyText}</span>
@@ -336,9 +336,9 @@
 <div class="flex flex-col gap-4">
 	<div class="flex items-center justify-between">
 		<h2 class="flex items-center gap-1.5 font-semibold">
-			Usage <span class="text-sm font-normal text-muted-foreground"
-				>· daily totals (UTC), no per-user data</span
-			>
+			Usage <span class="text-sm font-normal text-muted-foreground">
+				· daily totals (UTC), no per-user data
+			</span>
 			<InfoTip
 				text="Only how often something happened per day, never who did it. Days run from midnight to midnight UTC. New numbers can take up to a minute to show up."
 			/>
@@ -430,9 +430,9 @@
 					{#each usage.series as s (s.key)}
 						<tr class="border-t">
 							<td class="py-1">
-								<span class="inline-flex items-center gap-1.5 font-mono text-xs"
-									>{s.key}<InfoTip text={describeMetric(s.key)} /></span
-								>
+								<span class="inline-flex items-center gap-1.5 font-mono text-xs">
+									{s.key}<InfoTip text={describeMetric(s.key)} />
+								</span>
 							</td>
 							<td class="py-1 text-right">{sum(s.counts).toLocaleString()}</td>
 							<td class="py-1 text-right">{sum(s.failures).toLocaleString()}</td>

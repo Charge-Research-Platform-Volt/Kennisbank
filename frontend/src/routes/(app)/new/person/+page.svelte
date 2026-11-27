@@ -138,17 +138,17 @@
 				{:else if duplicate?.exists}
 					<p class="text-xs text-destructive">
 						A person with this name already exists.
-						<a href="/library?inspectorId={duplicate.id}&inspectorType=person" class="underline"
-							>View</a
-						>
+						<a href="/library?inspectorId={duplicate.id}&inspectorType=person" class="underline">
+							View
+						</a>
 					</p>
 				{:else if similar.length > 0}
 					<p class="text-xs text-muted-foreground">
 						Similar names already in the library:
 						{#each similar as s, i (s.id)}
-							<a href="/library?inspectorId={s.id}&inspectorType=person" class="underline"
-								>{s.name}</a
-							>{#if i < similar.length - 1},&nbsp;{/if}
+							<a href="/library?inspectorId={s.id}&inspectorType=person" class="underline">
+								{s.name}
+							</a>{#if i < similar.length - 1},&nbsp;{/if}
 						{/each}
 					</p>
 				{/if}
@@ -212,9 +212,9 @@
 
 		<!-- Actions -->
 		<div class="flex justify-end gap-3">
-			<Button variant="outline" type="button" onclick={() => history.back()} class="cursor-pointer"
-				>Cancel</Button
-			>
+			<Button variant="outline" type="button" onclick={() => history.back()} class="cursor-pointer">
+				Cancel
+			</Button>
 			<Button type="submit" disabled={!canSubmit} class="cursor-pointer">
 				{isSubmitting ? 'Creating...' : 'Create Person'}
 			</Button>

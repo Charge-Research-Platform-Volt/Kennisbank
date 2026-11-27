@@ -180,8 +180,9 @@
 			{/if}
 
 			<div class="flex flex-col gap-1.5">
-				<Label for="doc-note">{isNewVersion ? 'What changed? (optional)' : 'Note (optional)'}</Label
-				>
+				<Label for="doc-note">
+					{isNewVersion ? 'What changed? (optional)' : 'Note (optional)'}
+				</Label>
 				<Textarea id="doc-note" bind:value={note} rows={2} />
 			</div>
 
@@ -234,8 +235,9 @@
 		</div>
 
 		<Dialog.Footer>
-			<Button variant="outline" class="cursor-pointer" onclick={() => (open = false)}>Cancel</Button
-			>
+			<Button variant="outline" class="cursor-pointer" onclick={() => (open = false)}>
+				Cancel
+			</Button>
 			<Button class="cursor-pointer" disabled={!canSubmit} onclick={submit}>
 				{#if submitting}
 					{progress != null && progress < 1
